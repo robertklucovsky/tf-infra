@@ -1,0 +1,86 @@
+# -----------------------------------------------------------------------------
+# PLATFORM POSTGRESQL — DBs and roles for platform-owned services
+#
+# SonarQube's DB/role are defined inline in sonarqube.tf (existing pattern).
+# Keycloak and OPAL are defined here. The FATTO per-service DBs live in the
+# tenant app repo (fatto-erp/tf-infra/dev/postgresql.tf).
+# -----------------------------------------------------------------------------
+
+# Internal CNPG service DNS names (used by Keycloak StatefulSet)
+locals {
+  pg_rw_host = "fatto-db-rw.cnpg-system.svc.cluster.local"
+  pg_ro_host = "fatto-db-ro.cnpg-system.svc.cluster.local"
+  pg_port    = 5432
+}
+
+# -----------------------------------------------------------------------------
+# KEYCLOAK DATABASE
+# -----------------------------------------------------------------------------
+
+resource "random_password" "pg_keycloak" {
+  length  = 24
+  special = false
+}
+
+resource "postgresql_role" "keycloak" {
+  name     = "keycloak"
+  login    = true
+  password = random_password.pg_keycloak.result
+
+  depends_on = [terraform_data.cnpg_ready]
+}
+
+resource "postgresql_database" "keycloak" {
+  name  = "keycloak"
+  owner = postgresql_role.keycloak.name
+
+  depends_on = [postgresql_role.keycloak]
+}
+
+# -----------------------------------------------------------------------------
+# OPAL DATABASE (legacy — OPAL workload not currently deployed,
+# but DB kept to preserve historical state)
+# -----------------------------------------------------------------------------
+
+resource "random_password" "pg_opal" {
+  length  = 24
+  special = false
+}
+
+resource "postgresql_role" "opal" {
+  name     = "opal"
+  login    = true
+  password = random_password.pg_opal.result
+
+  depends_on = [terraform_data.cnpg_ready]
+}
+
+resource "postgresql_database" "opal" {
+  name  = "opal"
+  owner = postgresql_role.opal.name
+
+  depends_on = [postgresql_role.opal]
+}
+
+# -----------------------------------------------------------------------------
+# KEYCLOAK DB CREDENTIALS SECRET (consumed by Keycloak StatefulSet)
+# -----------------------------------------------------------------------------
+
+resource "kubernetes_secret" "keycloak_db_credentials" {
+  metadata {
+    name      = "keycloak-db-credentials"
+    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+
+    labels = {
+      "app.kubernetes.io/name"       = "keycloak-db-credentials"
+      "app.kubernetes.io/component"  = "database"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  data = {
+    "keycloak-url"      = "jdbc:postgresql://${local.pg_rw_host}:${local.pg_port}/keycloak"
+    "keycloak-username" = postgresql_role.keycloak.name
+    "keycloak-password" = random_password.pg_keycloak.result
+  }
+}
