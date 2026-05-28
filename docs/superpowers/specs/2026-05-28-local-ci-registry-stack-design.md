@@ -6,7 +6,7 @@
 
 ## Background
 
-GitHub-hosted Actions runners and GitHub Packages keep exceeding the paid plan's monthly limits (CI minutes + package storage/bandwidth). Source code stays on GitHub. Goal: keep the GitHub workflow but move the metered components (CI execution, container images, npm/maven artifacts) onto the existing `tf-platform` cluster.
+The paid GitHub plan's monthly **storage limit** for Actions + Packages keeps getting exhausted (CI minutes are not currently a constraint — usage is ~460/3000). User-confirmed: Actions storage (artifacts + cache) is the dominant pain point; Packages storage is likely also significant given the user publishes container images, npm, and maven artifacts. Source code stays on GitHub. Goal: keep the GitHub workflow but move the metered storage surfaces (container images, npm/maven artifacts, Actions artifacts, Actions cache) onto the existing `tf-platform` cluster — plus pre-empt CI-minute pressure with self-hosted runners.
 
 ## Goals
 
@@ -30,6 +30,7 @@ GitHub-hosted Actions runners and GitHub Packages keep exceeding the paid plan's
 | `actions-runner-controller` (ARC) | GitHub-maintained controller that registers ephemeral runner pods with GitHub | `actions-runner-controller/actions-runner-controller` | 1 controller + autoscaling runners (min 0, max 3) |
 | `Zot` | OCI-native container registry, MinIO-backed | `project-zot/zot` | 1 |
 | `Sonatype Nexus OSS` | Multi-format package registry (npm, maven, generic) | `sonatype/nexus-repository-manager` | 1 |
+| `github-actions` MinIO bucket | Backing storage for workflow cache + artifacts (no new pod; just a bucket in existing MinIO) | — | — |
 
 ## Component placement in tf-platform
 
@@ -218,6 +219,61 @@ output "nexus_admin_credentials" {
   sensitive = true
 }
 ```
+
+## Actions storage redirect (artifacts + cache)
+
+Beyond container images and packages, GitHub Actions itself consumes storage in two ways: **workflow artifacts** (`actions/upload-artifact`) and **workflow caches** (`actions/cache`). Neither has a built-in "use my own storage" toggle in GitHub, but both can be redirected via workflow-level changes.
+
+### Cache — drop-in S3-backed action
+
+Replace `actions/cache@v4` in workflows with `tespkg/actions-cache@v1` (or equivalent: `runs-on/cache`, `whywaita/actions-cache-s3`). Same step interface (`key`, `path`, `restore-keys`), but the backend is S3-compatible storage of your choice.
+
+Workflow snippet:
+
+```yaml
+- uses: tespkg/actions-cache@v1
+  with:
+    endpoint: minio.dev.fatto.online   # platform MinIO public ingress
+    insecure: false
+    accessKey: ${{ secrets.MINIO_ACCESS_KEY }}
+    secretKey: ${{ secrets.MINIO_SECRET_KEY }}
+    bucket: github-actions
+    use-fallback: false
+    path: ~/.gradle/caches
+    key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*') }}
+    restore-keys: gradle-${{ runner.os }}-
+```
+
+### Artifacts — direct push to MinIO, skip `upload-artifact`
+
+For artifacts that need to be passed between jobs (or downloaded later):
+
+```yaml
+- name: Upload build artifact
+  run: |
+    mc alias set local https://minio.dev.fatto.online \
+      "${{ secrets.MINIO_ACCESS_KEY }}" "${{ secrets.MINIO_SECRET_KEY }}"
+    mc cp ./build/output.tar.gz \
+      local/github-actions/artifacts/${{ github.repository }}/${{ github.run_id }}/output.tar.gz
+```
+
+For artifacts that only need to live during the workflow run (passed between jobs), GitHub's `actions/upload-artifact` is still convenient for short-lived data — but only if its retention is set very low (e.g. `retention-days: 1`) to avoid storage accrual. The migration target should be: nothing long-lived on GitHub.
+
+### Infrastructure side — one new MinIO bucket
+
+A `github-actions` bucket in the platform's existing MinIO. Created via the same one-shot Kubernetes Job pattern as `zot-storage`:
+
+- `kubernetes_job_v1.github_actions_bucket_init` runs `mc mb --ignore-existing local/github-actions` using the platform's existing MinIO root creds. Lifecycle: idempotent, runs at apply time.
+
+A dedicated MinIO service account for GitHub Actions (with bucket-scoped permissions) is a follow-up; initial setup uses the existing root credentials, surfaced as MinIO `accessKey`/`secretKey` GitHub repo or org secrets that the user copies manually after `terraform apply`.
+
+### Access shape
+
+GitHub-hosted runners reach MinIO via the **public ingress** (`minio.dev.fatto.online`) — already exists in the platform. Self-hosted runners (ARC, once installed) reach MinIO via the **in-cluster service** (`minio.fatto-erp-dev.svc.cluster.local:9000`). Workflows should use the public endpoint so they work in both modes; ARC runners just resolve the public DNS internally with negligible cost.
+
+### Recommendation
+
+Migrate one workflow as a pilot. Once the `tespkg/actions-cache` round-trip is verified to work and artifacts are landing in MinIO, do a sweep across the org's workflows in a single PR.
 
 ## Apply / destroy ordering
 
