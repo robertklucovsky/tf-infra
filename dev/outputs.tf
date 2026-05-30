@@ -84,3 +84,21 @@ output "zot_admin_password" {
   value       = random_password.zot_admin.result
   sensitive   = true
 }
+
+# -----------------------------------------------------------------------------
+# NEXUS
+# -----------------------------------------------------------------------------
+
+output "nexus_url" {
+  description = "Nexus Repository Manager URL"
+  value       = "https://nexus.klucovsky.com"
+}
+
+output "nexus_admin_credentials" {
+  description = "Nexus admin login (rotate in UI on first login)"
+  value = {
+    username = data.kubernetes_secret.nexus_credentials.data["username"]
+    password = data.kubernetes_secret.nexus_credentials.data["password"]
+  }
+  sensitive = true
+}
