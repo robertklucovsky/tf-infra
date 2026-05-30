@@ -64,3 +64,23 @@ output "alertmanager_url" { value = "https://alertmanager.klucovsky.com" }
 output "sonarqube_url" { value = "https://sonar.klucovsky.com" }
 output "pgadmin_url" { value = "https://db.klucovsky.com" }
 output "argocd_url" { value = "https://argocd.klucovsky.com" }
+
+# -----------------------------------------------------------------------------
+# ZOT
+# -----------------------------------------------------------------------------
+
+output "registry_url" {
+  description = "Zot container registry URL"
+  value       = "https://registry.klucovsky.com"
+}
+
+output "zot_admin_user" {
+  description = "Zot admin username"
+  value       = var.zot_admin_user
+}
+
+output "zot_admin_password" {
+  description = "Zot admin password"
+  value       = random_password.zot_admin.result
+  sensitive   = true
+}
