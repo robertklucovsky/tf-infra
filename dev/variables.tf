@@ -310,3 +310,23 @@ variable "zot_admin_user" {
   type        = string
   default     = "admin"
 }
+
+# -----------------------------------------------------------------------------
+# SONATYPE NEXUS OSS
+# -----------------------------------------------------------------------------
+
+# NOTE: Plan defaulted to 73.0.0 but the Sonatype Helm repo only publishes up
+# to 64.2.0 for the nexus-repository-manager chart (the chart was deprecated
+# in favor of nxrm-ha, which is HA-focused / overkill here). 64.2.0 is the
+# latest published version of the simple single-instance chart.
+variable "nexus_chart_version" {
+  description = "Sonatype Nexus Repository Manager Helm chart version"
+  type        = string
+  default     = "64.2.0"
+}
+
+variable "nexus_storage_size" {
+  description = "Nexus PVC storage size"
+  type        = string
+  default     = "20Gi"
+}
