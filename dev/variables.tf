@@ -294,3 +294,19 @@ variable "arc_runner_min_replicas" {
   type        = number
   default     = 0
 }
+
+# -----------------------------------------------------------------------------
+# ZOT (Container registry, MinIO-backed)
+# -----------------------------------------------------------------------------
+
+variable "zot_chart_version" {
+  description = "Zot Helm chart version"
+  type        = string
+  default     = "0.1.66"
+}
+
+variable "zot_admin_user" {
+  description = "Zot admin username"
+  type        = string
+  default     = "admin"
+}
