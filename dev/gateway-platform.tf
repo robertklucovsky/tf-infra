@@ -183,3 +183,60 @@ resource "kubectl_manifest" "platform_tls_route" {
     kubernetes_endpoints.platform_terminating_relay,
   ]
 }
+
+# -----------------------------------------------------------------------------
+# DURABLE METALLB IP ASSIGNMENT
+# Cilium does not propagate Gateway annotations to the generated cilium-gateway-*
+# Service, so MetalLB shared-IP must be set on those Services. Manage it in TF so
+# it survives gateway/service recreation. (Set imperatively during Plan 1.)
+#   - both fronts share 172.16.1.12 (ports 443 + 80 do not overlap)
+#   - terminating is reached internally via the relay; its .13 external IP is
+#     unused but MetalLB assigns one anyway, so we pin it off the fronts' IP.
+# -----------------------------------------------------------------------------
+
+resource "kubernetes_annotations" "front_tls_lb_ip" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "cilium-gateway-platform-front-tls"
+    namespace = "gateway"
+  }
+  annotations = {
+    "metallb.io/allow-shared-ip" = "platform-front"
+    "metallb.io/loadBalancerIPs" = "172.16.1.12"
+  }
+  force = true
+
+  depends_on = [kubectl_manifest.platform_front_tls_gw]
+}
+
+resource "kubernetes_annotations" "front_http_lb_ip" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "cilium-gateway-platform-front-http"
+    namespace = "gateway"
+  }
+  annotations = {
+    "metallb.io/allow-shared-ip" = "platform-front"
+    "metallb.io/loadBalancerIPs" = "172.16.1.12"
+  }
+  force = true
+
+  depends_on = [kubectl_manifest.platform_front_http_gw]
+}
+
+resource "kubernetes_annotations" "terminating_lb_ip" {
+  api_version = "v1"
+  kind        = "Service"
+  metadata {
+    name      = "cilium-gateway-platform-terminating"
+    namespace = "gateway"
+  }
+  annotations = {
+    "metallb.io/loadBalancerIPs" = "172.16.1.13"
+  }
+  force = true
+
+  depends_on = [kubectl_manifest.platform_terminating_gw]
+}
