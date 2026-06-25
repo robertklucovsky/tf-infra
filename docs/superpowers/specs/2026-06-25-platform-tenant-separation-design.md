@@ -123,6 +123,34 @@ into Plan 1 / Plan 6:
    passthrough, one `:80` HTTP redirect (shared-IP via MetalLB sharing annotation or a
    single fronting LB service).
 
+### Plan 1 outcome (2026-06-25) — foundation built & validated, + 3 operational findings
+The B2 platform ingress foundation is live on a second IP, validated end-to-end
+(grafana HTTP 200 via the passthrough→relay→terminating path, real `*.klucovsky.com`
+LE cert presented at the backend, `:80`→301 redirect), with `fatto-gateway` on `.11`
+untouched. IP layout now: `.11` fatto-gateway (live), `.12` both fronts (shared via
+MetalLB), `.13` platform-terminating. MetalLB pool widened to `172.16.1.11-13`.
+
+Three findings that **Plan 2 / Plan 6 must handle**:
+1. **Cilium does NOT propagate `Gateway.metadata.annotations` to the generated
+   `cilium-gateway-*` Service.** MetalLB shared-IP annotations
+   (`metallb.io/allow-shared-ip`, `metallb.io/loadBalancerIPs`) had to be set on the
+   **Service** directly. These were applied imperatively (`kubectl annotate`) and are
+   **NOT in Terraform state** — Plan 2 must make them durable (e.g. a
+   `kubernetes_annotations` TF resource targeting the generated Services, or a Cilium
+   gateway-service annotation mechanism), or they will be lost if a gateway is recreated.
+2. **Backend (terminating) gateways consume a MetalLB pool IP they don't need** (they
+   are reached via the ClusterIP relay). `platform-terminating` was pinned to `.13`.
+   Each additional terminating gateway (notably the project's in Plan 6) consumes
+   another pool IP — widen the pool accordingly, or find a "don't-assign-external-IP"
+   mechanism for backend gateways.
+3. **MetalLB does not auto-retry after `AllocationFailed`.** Re-applying identical
+   annotations is a no-op (no reconcile); a real change event ("nudge") was needed to
+   force reallocation once `.12` was freed. Relevant during the cutover when IPs move.
+
+**Cutover prerequisite (Plan 2):** the router NATs the public `:443` to `.11`, so the
+two front gateways must ultimately move to `.11` (after `fatto-gateway` is removed from
+`.11`). That IP move is the core of Plan 2.
+
 ## Keycloak realm / theme
 
 - **Server:** stays in `tf-platform`, vanilla (no realm import, no fatto theme, generic
