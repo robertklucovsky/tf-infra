@@ -151,6 +151,23 @@ Three findings that **Plan 2 / Plan 6 must handle**:
 two front gateways must ultimately move to `.11` (after `fatto-gateway` is removed from
 `.11`). That IP move is the core of Plan 2.
 
+### Plan 3 outcome (2026-06-25) — ingress flip complete, ingress layer is fatto-free
+Executed and validated: `auth`/`mail`/`minio` moved to `*.klucovsky.com` (Keycloak
+`KC_HOSTNAME` → `auth.klucovsky.com`); all 11 platform-tool routes consolidated on
+`platform-terminating` (in `routes-platform.tf`); the original per-service routes,
+`fatto-gateway`, and the `*.dev/*.test.fatto.online` wildcard certs were removed; the
+front gateways flipped from `.12` onto **`172.16.1.11`** (no DNS change — `.11` just
+changed owner). `var.domain` (its only value was `dev.fatto.online`) was dropped from
+the platform; tool URL outputs now point at klucovsky. All 11 hosts validated 2xx/3xx
+on `.11`; `:80`→301 redirect works; the fatto domain no longer resolves to anything.
+
+**Ingress is now fatto-free.** Remaining `fatto` references in `tf-platform` belong to
+not-yet-done streams: ARC runner (`arc.tf`), Keycloak realm/theme/labels (`keycloak.tf`),
+MinIO buckets (`minio.tf`), the accepted Nexus npm `@fatto-erp` exception
+(`nexus-npm.tf`), and cosmetic comments (`main.tf`, `postgresql.tf`, `zot.tf`, and stale
+comments in `gateway-platform.tf`/`routes-platform.tf`). The `.11` flip is done, so the
+project Gateway is only needed when the (currently undeployed) tenant is deployed.
+
 ## Keycloak realm / theme
 
 - **Server:** stays in `tf-platform`, vanilla (no realm import, no fatto theme, generic
