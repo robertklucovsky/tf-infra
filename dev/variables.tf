@@ -226,50 +226,10 @@ variable "argocd_version" {
 # ACTIONS RUNNER CONTROLLER (ARC)
 # -----------------------------------------------------------------------------
 
-variable "github_org" {
-  description = "GitHub organization that runners register with"
-  type        = string
-  default     = "Fatto-ERP"
-}
-
-variable "github_app_id" {
-  description = "GitHub App ID for ARC (from GitHub App settings)"
-  type        = string
-}
-
-variable "github_app_installation_id" {
-  description = "GitHub App installation ID for ARC"
-  type        = string
-}
-
-variable "github_app_private_key" {
-  description = "GitHub App private key PEM contents (sensitive)"
-  type        = string
-  sensitive   = true
-}
-
 variable "arc_controller_chart_version" {
   description = "gha-runner-scale-set-controller OCI chart version"
   type        = string
   default     = "0.9.3"
-}
-
-variable "arc_runner_chart_version" {
-  description = "gha-runner-scale-set OCI chart version (must match controller)"
-  type        = string
-  default     = "0.9.3"
-}
-
-variable "arc_runner_max_replicas" {
-  description = "Max concurrent runner pods"
-  type        = number
-  default     = 3
-}
-
-variable "arc_runner_min_replicas" {
-  description = "Min idle runner pods (0 = scale to zero when no jobs)"
-  type        = number
-  default     = 0
 }
 
 # -----------------------------------------------------------------------------
