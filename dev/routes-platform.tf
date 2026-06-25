@@ -1,13 +1,10 @@
 # -----------------------------------------------------------------------------
-# PLATFORM TOOL ROUTES (B2) — parallel routes on platform-terminating
+# PLATFORM TOOL ROUTES (B2) — HTTPRoutes on platform-terminating
 #
-# Dual-serve: each *.klucovsky.com tool also gets a route on the new terminating
-# Gateway (reached via the passthrough front on 172.16.1.12). The original routes
-# on fatto-gateway stay live. Cross-namespace parentRef (gateway ns) is allowed by
-# platform-terminating's allowedRoutes.namespaces.from=All.
-#
-# Removing the old fatto-gateway routes + the .11 flip happen at the final cutover
-# (after the project Gateway / Plan 6 takes over the fatto domain).
+# Each *.klucovsky.com tool routes to its backend Service via platform-terminating
+# (which sits behind the passthrough front on 172.16.1.11). Cross-namespace
+# parentRef (gateway ns) is allowed by platform-terminating's
+# allowedRoutes.namespaces.from=All.
 # -----------------------------------------------------------------------------
 
 locals {

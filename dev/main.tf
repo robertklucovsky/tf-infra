@@ -1,4 +1,4 @@
-# FATTO Shared Platform Infrastructure
+# Shared Platform Infrastructure
 # Terraform configuration for shared K8s platform (Canonical K8s)
 
 terraform {

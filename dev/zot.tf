@@ -96,7 +96,7 @@ resource "kubernetes_job_v1" "zot_bucket_init" {
             EOT
           ]
 
-          # NOTE: fatto-credentials Secret lives in the `fatto-erp-dev` namespace
+          # NOTE: the tenant credentials Secret lives in the tenant namespace
           # and Kubernetes Secrets are namespace-scoped, so we source the MinIO
           # password directly from the `random_password.minio_password` resource
           # (the same way the Zot Helm release does below).

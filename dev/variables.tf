@@ -80,7 +80,7 @@ variable "postgres_superuser" {
 }
 
 variable "postgres_superuser_password" {
-  description = "PostgreSQL superuser password (stored into fatto-credentials secret)"
+  description = "PostgreSQL superuser password"
   type        = string
   sensitive   = true
 }

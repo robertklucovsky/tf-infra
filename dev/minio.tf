@@ -16,7 +16,7 @@ resource "kubernetes_namespace" "minio" {
 
 # -----------------------------------------------------------------------------
 # ADMIN CREDENTIALS HANDOFF
-# Tenant repos (e.g. fatto-erp/tf-infra) need MinIO admin creds to provision
+# Tenant repos need MinIO admin creds to provision
 # their own bucket + scoped access key via the MinIO Terraform provider.
 # Published as a Secret here (same pattern as cnpg-superuser) so tenants can
 # read it via data.kubernetes_secret without coupling to this repo's state.
@@ -46,7 +46,7 @@ resource "kubernetes_stateful_set" "minio" {
     namespace = kubernetes_namespace.minio.metadata[0].name
     labels = {
       "app.kubernetes.io/name"    = "minio"
-      "app.kubernetes.io/part-of" = "fatto"
+      "app.kubernetes.io/part-of" = "platform"
     }
   }
 

@@ -1,10 +1,10 @@
 # -----------------------------------------------------------------------------
-# PLATFORM INGRESS (B2) — parallel build on 172.16.1.11
+# PLATFORM INGRESS (B2)
 #
-# Front (passthrough :443) + Front (redirect :80) + Terminating (*.klucovsky.com).
+# Front (passthrough :443) + Front (redirect :80) share 172.16.1.11 (the router's
+# public target); Terminating (*.klucovsky.com) is reached internally via a relay.
 # Wired with the PoC-validated relay-Endpoints pattern (a TLSRoute backendRef
-# cannot target a cilium-gateway-* Service directly). Built alongside the live
-# fatto-gateway (.11); no existing route is touched here.
+# cannot target a cilium-gateway-* Service directly).
 # -----------------------------------------------------------------------------
 
 # Terminating Gateway: terminates TLS for platform tools on *.klucovsky.com.

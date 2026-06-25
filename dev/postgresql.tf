@@ -2,8 +2,8 @@
 # PLATFORM POSTGRESQL — DBs and roles for platform-owned services
 #
 # SonarQube's DB/role are defined inline in sonarqube.tf (existing pattern).
-# Keycloak and OPAL are defined here. The FATTO per-service DBs live in the
-# tenant app repo (fatto-erp/tf-infra/dev/postgresql.tf).
+# Keycloak and OPAL are defined here. Tenant per-service DBs live in the
+# tenant repo.
 # -----------------------------------------------------------------------------
 
 # Internal CNPG service DNS names (used by Keycloak StatefulSet)

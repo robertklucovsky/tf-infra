@@ -28,7 +28,7 @@ resource "kubernetes_config_map" "keycloak_theme" {
     namespace = kubernetes_namespace.keycloak.metadata[0].name
     labels = {
       "app.kubernetes.io/name"    = "keycloak"
-      "app.kubernetes.io/part-of" = "fatto"
+      "app.kubernetes.io/part-of" = "platform"
     }
   }
 
@@ -45,7 +45,7 @@ resource "kubernetes_config_map" "keycloak_realm" {
     namespace = kubernetes_namespace.keycloak.metadata[0].name
     labels = {
       "app.kubernetes.io/name"    = "keycloak"
-      "app.kubernetes.io/part-of" = "fatto"
+      "app.kubernetes.io/part-of" = "platform"
     }
   }
 
@@ -64,7 +64,7 @@ resource "kubernetes_stateful_set" "keycloak" {
     namespace = kubernetes_namespace.keycloak.metadata[0].name
     labels = {
       "app.kubernetes.io/name"    = "keycloak"
-      "app.kubernetes.io/part-of" = "fatto"
+      "app.kubernetes.io/part-of" = "platform"
     }
   }
 
@@ -129,7 +129,7 @@ resource "kubernetes_stateful_set" "keycloak" {
           }
 
           # Sourced directly from the generated password rather than the
-          # fatto-credentials Secret, which lives in the fatto-erp-dev namespace
+          # tenant credentials Secret, which lives in the tenant namespace
           # (Kubernetes Secrets are namespace-scoped). Mirrors MinIO's approach.
           env {
             name  = "KEYCLOAK_ADMIN_PASSWORD"

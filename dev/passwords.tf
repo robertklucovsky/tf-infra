@@ -6,8 +6,8 @@
 #   - keycloak_password → Keycloak StatefulSet
 #   - grafana_password  → kube-prometheus-stack (Grafana)
 #
-# The tenant namespace (fatto-erp-dev) and its resources (redis, fatto-credentials)
-# are owned by the tenant repo (fatto-erp/tf-infra). Tenants read the MinIO admin
+# The tenant namespace and its resources (redis, tenant credentials)
+# are owned by the tenant repo. Tenants read the MinIO admin
 # password via the minio-admin Secret (see minio.tf).
 # -----------------------------------------------------------------------------
 
