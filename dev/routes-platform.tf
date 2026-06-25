@@ -60,6 +60,24 @@ locals {
       backend   = "zot"
       port      = 5000
     }
+    keycloak = {
+      namespace = "keycloak"
+      hostname  = "auth.klucovsky.com"
+      backend   = "keycloak"
+      port      = 80
+    }
+    mailpit = {
+      namespace = "mailpit"
+      hostname  = "mail.klucovsky.com"
+      backend   = "mailpit"
+      port      = 8025
+    }
+    minio = {
+      namespace = "minio"
+      hostname  = "minio.klucovsky.com"
+      backend   = "minio"
+      port      = 9001
+    }
   }
 }
 
