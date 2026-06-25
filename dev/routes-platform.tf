@@ -71,7 +71,7 @@ locals {
     }
     minio = {
       namespace = "minio"
-      hostname  = "minio.klucovsky.com"
+      hostname  = "s3.klucovsky.com"
       backend   = "minio"
       port      = 9001
     }

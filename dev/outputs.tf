@@ -46,7 +46,7 @@ output "pgadmin_credentials" {
 
 output "keycloak_url" { value = "https://auth.klucovsky.com" }
 output "mailpit_url" { value = "https://mail.klucovsky.com" }
-output "minio_console_url" { value = "https://minio.klucovsky.com" }
+output "minio_console_url" { value = "https://s3.klucovsky.com" }
 output "grafana_url" { value = "https://grafana.klucovsky.com" }
 output "prometheus_url" { value = "https://prometheus.klucovsky.com" }
 output "alertmanager_url" { value = "https://alertmanager.klucovsky.com" }
