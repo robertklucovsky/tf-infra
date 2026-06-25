@@ -90,7 +90,7 @@ resource "kubernetes_job_v1" "zot_bucket_init" {
           args = [
             <<-EOT
               set -e
-              mc alias set local http://minio.${var.namespace}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              mc alias set local http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
               mc mb --ignore-existing local/zot-storage
               echo "zot-storage bucket ready"
             EOT
@@ -162,7 +162,7 @@ resource "helm_release" "zot" {
               name           = "s3"
               rootdirectory  = "/zot"
               region         = "us-east-1"
-              regionendpoint = "http://minio.${var.namespace}.svc.cluster.local:9000"
+              regionendpoint = "http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000"
               bucket         = "zot-storage"
               forcepathstyle = true
               secure         = false
@@ -182,6 +182,13 @@ resource "helm_release" "zot" {
           }
           log = {
             level = "info"
+          }
+          # Web UI (zui). The `ui` extension needs `search` enabled to power
+          # its image listing. The full zot image (zot-linux-amd64, not the
+          # -minimal variant) ships both extensions.
+          extensions = {
+            search = { enable = true }
+            ui     = { enable = true }
           }
         })
       }

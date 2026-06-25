@@ -8,8 +8,8 @@
 
 # Internal CNPG service DNS names (used by Keycloak StatefulSet)
 locals {
-  pg_rw_host = "fatto-db-rw.cnpg-system.svc.cluster.local"
-  pg_ro_host = "fatto-db-ro.cnpg-system.svc.cluster.local"
+  pg_rw_host = "shared-db-rw.cnpg-system.svc.cluster.local"
+  pg_ro_host = "shared-db-ro.cnpg-system.svc.cluster.local"
   pg_port    = 5432
 }
 
@@ -69,7 +69,7 @@ resource "postgresql_database" "opal" {
 resource "kubernetes_secret" "keycloak_db_credentials" {
   metadata {
     name      = "keycloak-db-credentials"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.keycloak.metadata[0].name
 
     labels = {
       "app.kubernetes.io/name"       = "keycloak-db-credentials"

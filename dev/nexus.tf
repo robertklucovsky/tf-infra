@@ -54,6 +54,13 @@ resource "helm_release" "nexus" {
 
   values = [
     yamlencode({
+      # Override the chart's default image tag (3.64.0) to a version that
+      # fixes the critical security issue. App version is decoupled from the
+      # pinned chart version (64.2.0 is the latest published simple chart).
+      image = {
+        repository = "sonatype/nexus3"
+        tag        = var.nexus_image_tag
+      }
       nexus = {
         # Node is small (4 cpu) and already 88% requested by other workloads,
         # so keep cpu/memory requests modest. Limits are higher to allow

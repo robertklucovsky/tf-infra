@@ -279,25 +279,6 @@ resource "kubernetes_service" "tempo_otlp_nodeport" {
 }
 
 # -----------------------------------------------------------------------------
-# SERVICE FOR OTLP INGESTION (accessible from fatto-erp-dev namespace)
-# ExternalName service so fatto-erp-dev services can reach Tempo via a simple name.
-# -----------------------------------------------------------------------------
-
-resource "kubernetes_service" "tempo_otlp_external" {
-  metadata {
-    name      = "tempo-otlp"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
-  }
-
-  spec {
-    type          = "ExternalName"
-    external_name = "tempo.observability.svc.cluster.local"
-  }
-
-  depends_on = [helm_release.tempo]
-}
-
-# -----------------------------------------------------------------------------
 # PROMETHEUS + GRAFANA (kube-prometheus-stack)
 # Full metrics, alerting, and dashboards
 # -----------------------------------------------------------------------------

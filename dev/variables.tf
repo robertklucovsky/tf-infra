@@ -14,12 +14,6 @@ variable "kubeconfig_context" {
   default     = "k8s"
 }
 
-variable "namespace" {
-  description = "Kubernetes namespace for FATTO dev environment (tenant)"
-  type        = string
-  default     = "fatto-erp-dev"
-}
-
 variable "domain" {
   description = "Base domain for dev environment gateway routing"
   type        = string
@@ -118,7 +112,7 @@ variable "cnpg_instances" {
 variable "cnpg_storage_size" {
   description = "PVC storage size per CNPG instance"
   type        = string
-  default     = "5Gi"
+  default     = "100Gi"
 }
 
 variable "cnpg_nodeport" {
@@ -163,17 +157,6 @@ variable "pgadmin_email" {
 # REDIS
 # -----------------------------------------------------------------------------
 
-variable "redis_version" {
-  description = "Redis version"
-  type        = string
-  default     = "8.4"
-}
-
-variable "redis_storage_size" {
-  description = "Redis PVC storage size"
-  type        = string
-  default     = "1Gi"
-}
 
 # -----------------------------------------------------------------------------
 # MINIO
@@ -329,4 +312,13 @@ variable "nexus_storage_size" {
   description = "Nexus PVC storage size"
   type        = string
   default     = "20Gi"
+}
+
+# Nexus application (image) version is decoupled from the Helm chart version.
+# The chart 64.2.0 ships sonatype/nexus3:3.64.0 by default, which carries a
+# critical security issue; override the image tag to >= 3.68.1.
+variable "nexus_image_tag" {
+  description = "sonatype/nexus3 image tag (Nexus application version)"
+  type        = string
+  default     = "3.68.1"
 }

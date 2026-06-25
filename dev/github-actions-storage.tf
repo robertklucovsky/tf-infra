@@ -5,14 +5,13 @@
 # direct `mc cp` (artifacts). Workflow YAML changes live in consumer repos.
 #
 # The bucket-init Job uses random_password.minio_password directly rather than
-# a secretRef, because cross-namespace secret refs aren't supported and the
-# fatto-credentials secret lives in fatto-erp-dev (same gotcha as zot.tf).
+# a secretRef. Runs in the `minio` namespace (platform-owned CI concern).
 # -----------------------------------------------------------------------------
 
 resource "kubernetes_job_v1" "github_actions_bucket_init" {
   metadata {
     name      = "github-actions-bucket-init"
-    namespace = var.namespace
+    namespace = kubernetes_namespace.minio.metadata[0].name
   }
 
   spec {
@@ -32,7 +31,7 @@ resource "kubernetes_job_v1" "github_actions_bucket_init" {
           args = [
             <<-EOT
               set -e
-              mc alias set local http://minio.${var.namespace}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              mc alias set local http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
               mc mb --ignore-existing local/github-actions
               echo "github-actions bucket ready"
             EOT
@@ -58,5 +57,5 @@ resource "kubernetes_job_v1" "github_actions_bucket_init" {
     create = "5m"
   }
 
-  depends_on = [kubernetes_secret.fatto_credentials]
+  depends_on = [kubernetes_namespace.minio]
 }

@@ -4,10 +4,46 @@
 # https://hub.docker.com/r/minio/minio
 # -----------------------------------------------------------------------------
 
+resource "kubernetes_namespace" "minio" {
+  metadata {
+    name = "minio"
+    labels = {
+      "app.kubernetes.io/name"       = "minio"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+}
+
+# -----------------------------------------------------------------------------
+# ADMIN CREDENTIALS HANDOFF
+# Tenant repos (e.g. fatto-erp/tf-infra) need MinIO admin creds to provision
+# their own bucket + scoped access key via the MinIO Terraform provider.
+# Published as a Secret here (same pattern as cnpg-superuser) so tenants can
+# read it via data.kubernetes_secret without coupling to this repo's state.
+# -----------------------------------------------------------------------------
+
+resource "kubernetes_secret" "minio_admin" {
+  metadata {
+    name      = "minio-admin"
+    namespace = kubernetes_namespace.minio.metadata[0].name
+
+    labels = {
+      "app.kubernetes.io/name"       = "minio"
+      "app.kubernetes.io/component"  = "admin-credentials"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  data = {
+    username = var.minio_root_user
+    password = random_password.minio_password.result
+  }
+}
+
 resource "kubernetes_stateful_set" "minio" {
   metadata {
     name      = "minio"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.minio.metadata[0].name
     labels = {
       "app.kubernetes.io/name"    = "minio"
       "app.kubernetes.io/part-of" = "fatto"
@@ -111,13 +147,13 @@ resource "kubernetes_stateful_set" "minio" {
     }
   }
 
-  depends_on = [kubernetes_namespace.fatto_dev]
+  depends_on = [kubernetes_namespace.minio]
 }
 
 resource "kubernetes_service" "minio" {
   metadata {
     name      = "minio"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.minio.metadata[0].name
     labels = {
       "app.kubernetes.io/name" = "minio"
     }
@@ -156,7 +192,7 @@ resource "kubectl_manifest" "route_minio" {
     kind: HTTPRoute
     metadata:
       name: minio
-      namespace: ${kubernetes_namespace.fatto_dev.metadata[0].name}
+      namespace: ${kubernetes_namespace.minio.metadata[0].name}
     spec:
       parentRefs:
         - name: fatto-gateway
@@ -178,37 +214,11 @@ resource "kubectl_manifest" "route_minio" {
 }
 
 
-# -----------------------------------------------------------------------------
-# CATALOG MINIO CREDENTIALS
-# Phase 4 (G-002): consumed by fatto-catalog Deployment + bucket-provision Job
-# -----------------------------------------------------------------------------
-
-resource "kubernetes_secret" "catalog_minio_credentials" {
-  metadata {
-    name      = "catalog-minio-credentials"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
-
-    labels = {
-      "app.kubernetes.io/name"       = "fatto-catalog"
-      "app.kubernetes.io/component"  = "config"
-      "app.kubernetes.io/managed-by" = "terraform"
-    }
-  }
-
-  data = {
-    "endpoint"   = "minio:9000"
-    "access-key" = var.minio_root_user
-    "secret-key" = random_password.minio_password.result
-  }
-
-  depends_on = [kubernetes_stateful_set.minio]
-}
-
 # Job to create default buckets
 resource "kubernetes_job" "minio_bucket_init" {
   metadata {
     name      = "minio-bucket-init"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.minio.metadata[0].name
   }
 
   spec {

@@ -155,9 +155,9 @@ resource "kubernetes_config_map" "pgadmin_servers" {
     "servers.json" = jsonencode({
       Servers = {
         "1" = {
-          Name             = "FATTO DB (CNPG)"
+          Name             = "Shared DB (CNPG)"
           Group            = "CNPG Cluster"
-          Host             = "fatto-db-rw.cnpg-system.svc.cluster.local"
+          Host             = "shared-db-rw.cnpg-system.svc.cluster.local"
           Port             = 5432
           MaintenanceDB    = "postgres"
           Username         = "postgres"
@@ -165,9 +165,9 @@ resource "kubernetes_config_map" "pgadmin_servers" {
           PassFile         = ""
         }
         "2" = {
-          Name             = "FATTO DB Read-Only"
+          Name             = "Shared DB Read-Only"
           Group            = "CNPG Cluster"
-          Host             = "fatto-db-ro.cnpg-system.svc.cluster.local"
+          Host             = "shared-db-ro.cnpg-system.svc.cluster.local"
           Port             = 5432
           MaintenanceDB    = "postgres"
           Username         = "postgres"

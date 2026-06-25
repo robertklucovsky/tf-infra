@@ -4,10 +4,20 @@
 # https://github.com/axllent/mailpit
 # -----------------------------------------------------------------------------
 
+resource "kubernetes_namespace" "mailpit" {
+  metadata {
+    name = "mailpit"
+    labels = {
+      "app.kubernetes.io/name"       = "mailpit"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+}
+
 resource "kubernetes_deployment" "mailpit" {
   metadata {
     name      = "mailpit"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.mailpit.metadata[0].name
 
     labels = {
       "app.kubernetes.io/name"      = "mailpit"
@@ -71,13 +81,13 @@ resource "kubernetes_deployment" "mailpit" {
     }
   }
 
-  depends_on = [kubernetes_namespace.fatto_dev]
+  depends_on = [kubernetes_namespace.mailpit]
 }
 
 resource "kubernetes_service" "mailpit" {
   metadata {
     name      = "mailpit"
-    namespace = kubernetes_namespace.fatto_dev.metadata[0].name
+    namespace = kubernetes_namespace.mailpit.metadata[0].name
   }
 
   spec {
@@ -111,7 +121,7 @@ resource "kubectl_manifest" "route_mailpit" {
     kind: HTTPRoute
     metadata:
       name: mailpit
-      namespace: ${kubernetes_namespace.fatto_dev.metadata[0].name}
+      namespace: ${kubernetes_namespace.mailpit.metadata[0].name}
     spec:
       parentRefs:
         - name: fatto-gateway

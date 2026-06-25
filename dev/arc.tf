@@ -61,9 +61,16 @@ resource "helm_release" "arc_runners" {
     yamlencode({
       githubConfigUrl    = "https://github.com/${var.github_org}"
       githubConfigSecret = kubernetes_secret.github_app.metadata[0].name
-      runnerScaleSetName = "fatto"
+      runnerScaleSetName = "fatto-erp"
       minRunners         = var.arc_runner_min_replicas
       maxRunners         = var.arc_runner_max_replicas
+
+      # Docker-in-Docker: build workflows use docker/buildx, which needs a
+      # Docker daemon. dind adds a privileged dind sidecar to each runner pod
+      # and points DOCKER_HOST at it.
+      containerMode = {
+        type = "dind"
+      }
     })
   ]
 

@@ -66,7 +66,7 @@ resource "kubectl_manifest" "cnpg_cluster" {
     apiVersion: postgresql.cnpg.io/v1
     kind: Cluster
     metadata:
-      name: fatto-db
+      name: shared-db
       namespace: cnpg-system
     spec:
       instances: ${var.cnpg_instances}
@@ -87,6 +87,10 @@ resource "kubectl_manifest" "cnpg_cluster" {
       storage:
         size: ${var.cnpg_storage_size}
         storageClass: ${var.storage_class}
+        # StorageClass csi-rawfile-default does not support volume expansion,
+        # so disable in-place PVC resize. Storage is grown via the CNPG
+        # "recreating storage" procedure (delete PVC+pod per instance).
+        resizeInUseVolumes: false
 
       postgresql:
         parameters:
@@ -117,11 +121,11 @@ resource "kubectl_manifest" "cnpg_cluster" {
 
 resource "kubernetes_service" "cnpg_nodeport" {
   metadata {
-    name      = "fatto-db-nodeport"
+    name      = "shared-db-nodeport"
     namespace = "cnpg-system"
 
     labels = {
-      "app.kubernetes.io/name"       = "fatto-db-nodeport"
+      "app.kubernetes.io/name"       = "shared-db-nodeport"
       "app.kubernetes.io/managed-by" = "terraform"
     }
   }
@@ -130,7 +134,7 @@ resource "kubernetes_service" "cnpg_nodeport" {
     type = "NodePort"
 
     selector = {
-      "cnpg.io/cluster" = "fatto-db"
+      "cnpg.io/cluster" = "shared-db"
       "role"            = "primary"
     }
 

@@ -81,7 +81,7 @@ resource "helm_release" "sonarqube" {
 
       jdbcOverwrite = {
         enable   = true
-        jdbcUrl  = "jdbc:postgresql://fatto-db-rw.cnpg-system.svc.cluster.local:5432/sonarqube"
+        jdbcUrl  = "jdbc:postgresql://shared-db-rw.cnpg-system.svc.cluster.local:5432/sonarqube"
         jdbcUsername = postgresql_role.sonarqube.name
         jdbcPassword = random_password.pg_sonarqube.result
       }

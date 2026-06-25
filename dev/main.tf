@@ -25,6 +25,10 @@ terraform {
       source  = "cyrilgdn/postgresql"
       version = "~> 1.25"
     }
+    nexus = {
+      source  = "datadrivers/nexus"
+      version = "~> 2.0"
+    }
   }
 
   backend "local" {
@@ -60,4 +64,14 @@ provider "postgresql" {
   password = var.postgres_superuser_password
   sslmode  = "disable"
   database = "postgres"
+}
+
+# Nexus provider — manages npm repositories. Connects to Nexus via its public
+# hostname (resolves to the gateway on the LAN where Terraform runs). Admin
+# creds are read from the nexus-credentials Secret captured in nexus.tf.
+provider "nexus" {
+  url      = "https://nexus.klucovsky.com"
+  username = data.kubernetes_secret.nexus_credentials.data["username"]
+  password = data.kubernetes_secret.nexus_credentials.data["password"]
+  insecure = false
 }

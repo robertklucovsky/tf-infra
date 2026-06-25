@@ -4,17 +4,6 @@
 # These outputs exist for human inspection.
 # -----------------------------------------------------------------------------
 
-output "tenant_namespace" {
-  description = "Tenant namespace created by platform"
-  value       = kubernetes_namespace.fatto_dev.metadata[0].name
-}
-
-output "redis_password" {
-  description = "Redis password (also stored in fatto-credentials secret)"
-  value       = random_password.redis_password.result
-  sensitive   = true
-}
-
 output "minio_credentials" {
   description = "MinIO access credentials"
   value = {
