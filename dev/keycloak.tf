@@ -173,7 +173,7 @@ resource "kubernetes_stateful_set" "keycloak" {
 
           env {
             name  = "KC_HOSTNAME"
-            value = "https://auth.${var.domain}"
+            value = "https://auth.klucovsky.com"
           }
 
           env {
