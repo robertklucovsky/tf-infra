@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# PLATFORM INGRESS (B2) — parallel build on 172.16.1.12
+# PLATFORM INGRESS (B2) — parallel build on 172.16.1.11
 #
 # Front (passthrough :443) + Front (redirect :80) + Terminating (*.klucovsky.com).
 # Wired with the PoC-validated relay-Endpoints pattern (a TLSRoute backendRef
@@ -45,7 +45,7 @@ resource "kubectl_manifest" "platform_front_tls_gw" {
       namespace: gateway
       annotations:
         metallb.io/allow-shared-ip: "platform-front"
-        metallb.io/loadBalancerIPs: "172.16.1.12"
+        metallb.io/loadBalancerIPs: "172.16.1.11"
     spec:
       gatewayClassName: ck-gateway
       listeners:
@@ -66,7 +66,7 @@ resource "kubectl_manifest" "platform_front_tls_gw" {
 
 # Front Gateway B: generic HTTP -> HTTPS redirect on :80 (separate Gateway —
 # Cilium refuses to attach an HTTPRoute to a Gateway that has a passthrough
-# listener). Shares 172.16.1.12 with the passthrough Gateway via MetalLB.
+# listener). Shares 172.16.1.11 with the passthrough Gateway via MetalLB.
 resource "kubectl_manifest" "platform_front_http_gw" {
   yaml_body = <<-YAML
     apiVersion: gateway.networking.k8s.io/v1
@@ -76,7 +76,7 @@ resource "kubectl_manifest" "platform_front_http_gw" {
       namespace: gateway
       annotations:
         metallb.io/allow-shared-ip: "platform-front"
-        metallb.io/loadBalancerIPs: "172.16.1.12"
+        metallb.io/loadBalancerIPs: "172.16.1.11"
     spec:
       gatewayClassName: ck-gateway
       listeners:
@@ -189,7 +189,7 @@ resource "kubectl_manifest" "platform_tls_route" {
 # Cilium does not propagate Gateway annotations to the generated cilium-gateway-*
 # Service, so MetalLB shared-IP must be set on those Services. Manage it in TF so
 # it survives gateway/service recreation. (Set imperatively during Plan 1.)
-#   - both fronts share 172.16.1.12 (ports 443 + 80 do not overlap)
+#   - both fronts share 172.16.1.11 (ports 443 + 80 do not overlap)
 #   - terminating is reached internally via the relay; its .13 external IP is
 #     unused but MetalLB assigns one anyway, so we pin it off the fronts' IP.
 # -----------------------------------------------------------------------------
@@ -203,7 +203,7 @@ resource "kubernetes_annotations" "front_tls_lb_ip" {
   }
   annotations = {
     "metallb.io/allow-shared-ip" = "platform-front"
-    "metallb.io/loadBalancerIPs" = "172.16.1.12"
+    "metallb.io/loadBalancerIPs" = "172.16.1.11"
   }
   force = true
 
@@ -219,7 +219,7 @@ resource "kubernetes_annotations" "front_http_lb_ip" {
   }
   annotations = {
     "metallb.io/allow-shared-ip" = "platform-front"
-    "metallb.io/loadBalancerIPs" = "172.16.1.12"
+    "metallb.io/loadBalancerIPs" = "172.16.1.11"
   }
   force = true
 
