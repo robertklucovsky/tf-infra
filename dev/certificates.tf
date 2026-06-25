@@ -79,48 +79,6 @@ resource "kubectl_manifest" "letsencrypt_issuer" {
 # so that TLS secrets are directly accessible by the gateway listeners.
 # -----------------------------------------------------------------------------
 
-# *.dev.fatto.online — Dev environment (VPN only)
-resource "kubectl_manifest" "cert_dev_wildcard" {
-  yaml_body = <<-YAML
-    apiVersion: cert-manager.io/v1
-    kind: Certificate
-    metadata:
-      name: dev-wildcard-tls
-      namespace: gateway
-    spec:
-      secretName: dev-wildcard-tls
-      issuerRef:
-        name: ${local.issuer_name}
-        kind: ClusterIssuer
-      dnsNames:
-        - "*.dev.fatto.online"
-        - "dev.fatto.online"
-  YAML
-
-  depends_on = [kubectl_manifest.letsencrypt_issuer, kubernetes_namespace.gateway]
-}
-
-# *.test.fatto.online — Test environment (public)
-resource "kubectl_manifest" "cert_test_wildcard" {
-  yaml_body = <<-YAML
-    apiVersion: cert-manager.io/v1
-    kind: Certificate
-    metadata:
-      name: test-wildcard-tls
-      namespace: gateway
-    spec:
-      secretName: test-wildcard-tls
-      issuerRef:
-        name: ${local.issuer_name}
-        kind: ClusterIssuer
-      dnsNames:
-        - "*.test.fatto.online"
-        - "test.fatto.online"
-  YAML
-
-  depends_on = [kubectl_manifest.letsencrypt_issuer, kubernetes_namespace.gateway]
-}
-
 # *.klucovsky.com — Infrastructure tools (VPN only)
 resource "kubectl_manifest" "cert_klucovsky_wildcard" {
   yaml_body = <<-YAML

@@ -253,27 +253,3 @@ resource "kubernetes_service" "pgadmin" {
 
   depends_on = [helm_release.cnpg_operator]
 }
-
-# HTTPRoute — db.klucovsky.com (VPN only)
-resource "kubectl_manifest" "pgadmin_route" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: pgadmin
-      namespace: cnpg-system
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-klucovsky
-      hostnames:
-        - "db.klucovsky.com"
-      rules:
-        - backendRefs:
-            - name: pgadmin
-              port: 80
-  YAML
-
-  depends_on = [kubernetes_service.pgadmin]
-}

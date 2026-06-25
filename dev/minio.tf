@@ -182,38 +182,6 @@ resource "kubernetes_service" "minio" {
   }
 }
 
-# -----------------------------------------------------------------------------
-# GATEWAY HTTPROUTE
-# -----------------------------------------------------------------------------
-
-resource "kubectl_manifest" "route_minio" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: minio
-      namespace: ${kubernetes_namespace.minio.metadata[0].name}
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-dev
-      hostnames:
-        - "minio.${var.domain}"
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: ${kubernetes_service.minio.metadata[0].name}
-              port: 9001
-  YAML
-
-  depends_on = [kubectl_manifest.gateway]
-}
-
-
 # Job to create default buckets
 resource "kubernetes_job" "minio_bucket_init" {
   metadata {

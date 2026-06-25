@@ -81,29 +81,3 @@ resource "helm_release" "argocd" {
   ]
 }
 
-# -----------------------------------------------------------------------------
-# HTTPROUTE — argocd.klucovsky.com (VPN only)
-# -----------------------------------------------------------------------------
-
-resource "kubectl_manifest" "argocd_route" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: argocd
-      namespace: ${kubernetes_namespace.argocd.metadata[0].name}
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-klucovsky
-      hostnames:
-        - "argocd.klucovsky.com"
-      rules:
-        - backendRefs:
-            - name: argocd-server
-              port: 80
-  YAML
-
-  depends_on = [helm_release.argocd, kubectl_manifest.gateway]
-}

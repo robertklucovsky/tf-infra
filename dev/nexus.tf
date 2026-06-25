@@ -226,31 +226,3 @@ data "kubernetes_secret" "nexus_credentials" {
   depends_on = [kubernetes_job_v1.nexus_admin_capture]
 }
 
-# -----------------------------------------------------------------------------
-# Gateway API HTTPRoute — nexus.klucovsky.com → Nexus
-#
-# Service name comes from chart template: <release>-nexus-repository-manager.
-# -----------------------------------------------------------------------------
-
-resource "kubectl_manifest" "nexus_route" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: nexus
-      namespace: ${kubernetes_namespace.nexus.metadata[0].name}
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-klucovsky
-      hostnames:
-        - "nexus.klucovsky.com"
-      rules:
-        - backendRefs:
-            - name: nexus-nexus-repository-manager
-              port: 8081
-  YAML
-
-  depends_on = [helm_release.nexus]
-}

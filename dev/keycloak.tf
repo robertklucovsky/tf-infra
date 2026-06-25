@@ -294,34 +294,3 @@ resource "kubernetes_service" "keycloak" {
     }
   }
 }
-
-# -----------------------------------------------------------------------------
-# GATEWAY HTTPROUTE
-# -----------------------------------------------------------------------------
-
-resource "kubectl_manifest" "route_keycloak" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: keycloak
-      namespace: ${kubernetes_namespace.keycloak.metadata[0].name}
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-dev
-      hostnames:
-        - "auth.${var.domain}"
-      rules:
-        - matches:
-            - path:
-                type: PathPrefix
-                value: /
-          backendRefs:
-            - name: ${kubernetes_service.keycloak.metadata[0].name}
-              port: 80
-  YAML
-
-  depends_on = [kubectl_manifest.gateway]
-}

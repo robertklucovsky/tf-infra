@@ -118,29 +118,3 @@ resource "helm_release" "sonarqube" {
   depends_on = [postgresql_database.sonarqube]
 }
 
-# -----------------------------------------------------------------------------
-# HTTPROUTE — sonar.klucovsky.com (VPN only)
-# -----------------------------------------------------------------------------
-
-resource "kubectl_manifest" "sonarqube_route" {
-  yaml_body = <<-YAML
-    apiVersion: gateway.networking.k8s.io/v1
-    kind: HTTPRoute
-    metadata:
-      name: sonarqube
-      namespace: ${kubernetes_namespace.sonarqube.metadata[0].name}
-    spec:
-      parentRefs:
-        - name: fatto-gateway
-          namespace: gateway
-          sectionName: https-klucovsky
-      hostnames:
-        - "sonar.klucovsky.com"
-      rules:
-        - backendRefs:
-            - name: sonarqube-sonarqube
-              port: 9000
-  YAML
-
-  depends_on = [helm_release.sonarqube]
-}
