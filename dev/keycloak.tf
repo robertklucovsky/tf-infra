@@ -19,43 +19,11 @@ resource "kubernetes_namespace" "keycloak" {
 }
 
 # -----------------------------------------------------------------------------
-# CONFIGMAPS — Theme & Realm Import
-# -----------------------------------------------------------------------------
-
-resource "kubernetes_config_map" "keycloak_theme" {
-  metadata {
-    name      = "keycloak-theme"
-    namespace = kubernetes_namespace.keycloak.metadata[0].name
-    labels = {
-      "app.kubernetes.io/name"    = "keycloak"
-      "app.kubernetes.io/part-of" = "platform"
-    }
-  }
-
-  data = {
-    "theme.properties" = file("${path.module}/keycloak-theme/login/theme.properties")
-    "login.ftl"        = file("${path.module}/keycloak-theme/login/login.ftl")
-    "login.css"        = file("${path.module}/keycloak-theme/login/resources/css/login.css")
-  }
-}
-
-resource "kubernetes_config_map" "keycloak_realm" {
-  metadata {
-    name      = "keycloak-realm"
-    namespace = kubernetes_namespace.keycloak.metadata[0].name
-    labels = {
-      "app.kubernetes.io/name"    = "keycloak"
-      "app.kubernetes.io/part-of" = "platform"
-    }
-  }
-
-  data = {
-    "fatto-realm.json" = file("${path.module}/keycloak-realm/fatto-realm.json")
-  }
-}
-
-# -----------------------------------------------------------------------------
 # STATEFULSET
+#
+# Vanilla Keycloak: no realm import, no custom theme. Realms + login themes are
+# tenant-owned and will be provisioned by each tenant via the Keycloak provider
+# + a shared themes volume once the tenant is deployed.
 # -----------------------------------------------------------------------------
 
 resource "kubernetes_stateful_set" "keycloak" {
@@ -83,45 +51,14 @@ resource "kubernetes_stateful_set" "keycloak" {
         labels = {
           "app.kubernetes.io/name" = "keycloak"
         }
-        annotations = {
-          "checksum/theme" = sha256(join("", values(kubernetes_config_map.keycloak_theme.data)))
-          "checksum/realm" = sha256(join("", values(kubernetes_config_map.keycloak_realm.data)))
-        }
       }
 
       spec {
-        # Init container: assemble theme directory structure from ConfigMap
-        init_container {
-          name  = "theme-init"
-          image = "busybox:1.37"
-
-          command = ["sh", "-c", <<-EOT
-            mkdir -p /theme/fatto/login/resources/css
-            cp /theme-src/theme.properties /theme/fatto/login/theme.properties
-            cp /theme-src/login.ftl /theme/fatto/login/login.ftl
-            cp /theme-src/login.css /theme/fatto/login/resources/css/login.css
-            echo "Theme directory assembled:"
-            find /theme -type f
-          EOT
-          ]
-
-          volume_mount {
-            name       = "theme-src"
-            mount_path = "/theme-src"
-            read_only  = true
-          }
-
-          volume_mount {
-            name       = "theme-dir"
-            mount_path = "/theme"
-          }
-        }
-
         container {
           name  = "keycloak"
           image = "quay.io/keycloak/keycloak:26.5.3"
 
-          args = ["start-dev", "--health-enabled=true", "--import-realm"]
+          args = ["start-dev", "--health-enabled=true"]
 
           env {
             name  = "KEYCLOAK_ADMIN"
@@ -186,12 +123,6 @@ resource "kubernetes_stateful_set" "keycloak" {
             value = "xforwarded"
           }
 
-          # Custom theme directory
-          env {
-            name  = "KC_SPI_THEME_DIR"
-            value = "/opt/keycloak/themes"
-          }
-
           port {
             container_port = 8080
             name           = "http"
@@ -227,38 +158,6 @@ resource "kubernetes_stateful_set" "keycloak" {
             failure_threshold     = 6
           }
 
-          # Theme files (assembled by init container)
-          volume_mount {
-            name       = "theme-dir"
-            mount_path = "/opt/keycloak/themes"
-            read_only  = true
-          }
-
-          # Realm import
-          volume_mount {
-            name       = "realm-import"
-            mount_path = "/opt/keycloak/data/import"
-            read_only  = true
-          }
-        }
-
-        volume {
-          name = "theme-src"
-          config_map {
-            name = kubernetes_config_map.keycloak_theme.metadata[0].name
-          }
-        }
-
-        volume {
-          name = "theme-dir"
-          empty_dir {}
-        }
-
-        volume {
-          name = "realm-import"
-          config_map {
-            name = kubernetes_config_map.keycloak_realm.metadata[0].name
-          }
         }
       }
     }
