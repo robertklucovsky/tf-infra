@@ -44,9 +44,9 @@ output "pgadmin_credentials" {
 # Web UI URLs (informational)
 # -----------------------------------------------------------------------------
 
-output "keycloak_url" { value = "https://auth.${var.domain}" }
-output "mailpit_url" { value = "https://mail.${var.domain}" }
-output "minio_console_url" { value = "https://minio.${var.domain}" }
+output "keycloak_url" { value = "https://auth.klucovsky.com" }
+output "mailpit_url" { value = "https://mail.klucovsky.com" }
+output "minio_console_url" { value = "https://minio.klucovsky.com" }
 output "grafana_url" { value = "https://grafana.klucovsky.com" }
 output "prometheus_url" { value = "https://prometheus.klucovsky.com" }
 output "alertmanager_url" { value = "https://alertmanager.klucovsky.com" }

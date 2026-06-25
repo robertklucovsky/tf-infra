@@ -14,12 +14,6 @@ variable "kubeconfig_context" {
   default     = "k8s"
 }
 
-variable "domain" {
-  description = "Base domain for dev environment gateway routing"
-  type        = string
-  default     = "dev.fatto.online"
-}
-
 # -----------------------------------------------------------------------------
 # KUBERNETES STORAGE
 # -----------------------------------------------------------------------------
