@@ -165,7 +165,7 @@ variable "minio_storage_size" {
 variable "minio_root_user" {
   description = "MinIO root user"
   type        = string
-  default     = "fatto-admin"
+  default     = "minio-admin"
 }
 
 # -----------------------------------------------------------------------------
