@@ -100,10 +100,28 @@ VPN ───────────────────┤
   SNI routing at the front sends it to the project gateway. No second public IP needed.
 
 ### Risk / validation
-`TLSRoute` + passthrough is less-trodden than HTTPRoute in Cilium. **PoC required**
-before cutover: confirm wildcard SNI matching (`*.fatto.online`, `*.klucovsky.com`)
-works and HTTP→HTTPS redirect on `:80` behaves. Front is a single point of failure —
-same as today's single Gateway, no regression.
+`TLSRoute` + passthrough is less-trodden than HTTPRoute in Cilium. Front is a single
+point of failure — same as today's single Gateway, no regression.
+
+### PoC outcome (2026-06-25) — **B2 validated** with two constraints
+A throwaway in-cluster PoC (passthrough front + terminating backend + `TLSRoute`,
+`*.poc.test`) confirmed: front Gateway `Programmed`, `TLSRoute` `Accepted/ResolvedRefs`
+True with **wildcard SNI**, end-to-end SNI passthrough returns the backend response, the
+**backend** presents the cert (termination at backend), non-matching SNI is rejected,
+and a hostname-less `:80` HTTP→HTTPS 301 redirect works. Two constraints MUST be carried
+into Plan 1 / Plan 6:
+
+1. **TLSRoute backend cannot reference `cilium-gateway-<backend>` directly.** Cilium's
+   Envoy→Envoy chaining fails (EDS sentinel `192.192.192.192:9999` is only intercepted
+   for pod-origin traffic, not Envoy-origin). **Fix:** the front `TLSRoute` `backendRef`
+   must point at a **relay ClusterIP Service with explicit `Endpoints`** (or headless
+   service) targeting the backend Gateway's ClusterIP:443 — not the cilium-gateway
+   Service directly.
+2. **Passthrough and HTTP-redirect listeners cannot share one Gateway.** Cilium refuses
+   to attach an `HTTPRoute` to a Gateway that also has a `TLS/Passthrough` listener.
+   **Fix:** the platform front is **two Gateways** sharing the one IP — one `:443` TLS
+   passthrough, one `:80` HTTP redirect (shared-IP via MetalLB sharing annotation or a
+   single fronting LB service).
 
 ## Keycloak realm / theme
 
