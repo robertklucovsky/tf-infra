@@ -182,51 +182,6 @@ resource "kubernetes_service" "minio" {
   }
 }
 
-# Job to create default buckets
-resource "kubernetes_job" "minio_bucket_init" {
-  metadata {
-    name      = "minio-bucket-init"
-    namespace = kubernetes_namespace.minio.metadata[0].name
-  }
-
-  spec {
-    template {
-      metadata {
-        name = "minio-bucket-init"
-      }
-      spec {
-        container {
-          name  = "mc"
-          image = "minio/mc:latest"
-          command = [
-            "sh", "-c",
-            <<-EOT
-              mc alias set local http://minio:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD
-              mc mb --ignore-existing local/fatto-attachments
-              mc mb --ignore-existing local/fatto-cad-files
-              mc mb --ignore-existing local/fatto-exports
-              echo "Buckets created successfully"
-            EOT
-          ]
-          env {
-            name  = "MINIO_ROOT_USER"
-            value = var.minio_root_user
-          }
-          env {
-            name  = "MINIO_ROOT_PASSWORD"
-            value = random_password.minio_password.result
-          }
-        }
-        restart_policy = "Never"
-      }
-    }
-    backoff_limit = 5
-  }
-
-  wait_for_completion = true
-  timeouts {
-    create = "5m"
-  }
-
-  depends_on = [kubernetes_stateful_set.minio, kubernetes_service.minio]
-}
+# NOTE: tenant buckets are owned by each tenant repo, which provisions its own
+# bucket + scoped access key via the MinIO provider. The platform only runs the
+# MinIO instance + root admin and publishes the minio-admin handoff Secret above.
