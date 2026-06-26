@@ -50,7 +50,7 @@ output "minio_console_url" { value = "https://s3.klucovsky.com" }
 output "grafana_url" { value = "https://grafana.klucovsky.com" }
 output "prometheus_url" { value = "https://prometheus.klucovsky.com" }
 output "alertmanager_url" { value = "https://alertmanager.klucovsky.com" }
-output "sonarqube_url" { value = "https://sonar.klucovsky.com" }
+output "sonarqube_url" { value = var.sonarqube_enabled ? "https://sonar.klucovsky.com" : null }
 output "pgadmin_url" { value = "https://db.klucovsky.com" }
 output "argocd_url" { value = "https://argocd.klucovsky.com" }
 

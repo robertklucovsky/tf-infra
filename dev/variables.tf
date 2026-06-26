@@ -119,6 +119,12 @@ variable "cnpg_nodeport" {
 # SONARQUBE
 # -----------------------------------------------------------------------------
 
+variable "sonarqube_enabled" {
+  description = "Whether to deploy SonarQube (namespace, DB, Helm release, route)"
+  type        = bool
+  default     = false
+}
+
 variable "sonarqube_version" {
   description = "SonarQube Helm chart version"
   type        = string

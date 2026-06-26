@@ -8,7 +8,7 @@
 # -----------------------------------------------------------------------------
 
 locals {
-  platform_tool_routes = {
+  platform_tool_routes = merge({
     argocd = {
       namespace = "argocd"
       hostname  = "argocd.klucovsky.com"
@@ -45,12 +45,6 @@ locals {
       backend   = "prometheus-kube-prometheus-prometheus"
       port      = 9090
     }
-    sonarqube = {
-      namespace = "sonarqube"
-      hostname  = "sonar.klucovsky.com"
-      backend   = "sonarqube-sonarqube"
-      port      = 9000
-    }
     zot = {
       namespace = "zot"
       hostname  = "registry.klucovsky.com"
@@ -75,7 +69,14 @@ locals {
       backend   = "minio"
       port      = 9001
     }
-  }
+    }, var.sonarqube_enabled ? {
+    sonarqube = {
+      namespace = "sonarqube"
+      hostname  = "sonar.klucovsky.com"
+      backend   = "sonarqube-sonarqube"
+      port      = 9000
+    }
+  } : {})
 }
 
 resource "kubectl_manifest" "platform_tool_route" {

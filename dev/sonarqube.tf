@@ -11,6 +11,8 @@
 # -----------------------------------------------------------------------------
 
 resource "kubernetes_namespace" "sonarqube" {
+  count = var.sonarqube_enabled ? 1 : 0
+
   metadata {
     name = "sonarqube"
 
@@ -26,26 +28,30 @@ resource "kubernetes_namespace" "sonarqube" {
 # -----------------------------------------------------------------------------
 
 resource "random_password" "pg_sonarqube" {
+  count   = var.sonarqube_enabled ? 1 : 0
   length  = 24
   special = false
 }
 
 resource "random_password" "sonarqube_monitoring" {
+  count   = var.sonarqube_enabled ? 1 : 0
   length  = 24
   special = false
 }
 
 resource "postgresql_role" "sonarqube" {
+  count    = var.sonarqube_enabled ? 1 : 0
   name     = "sonarqube"
   login    = true
-  password = random_password.pg_sonarqube.result
+  password = random_password.pg_sonarqube[0].result
 
   depends_on = [terraform_data.cnpg_ready]
 }
 
 resource "postgresql_database" "sonarqube" {
+  count = var.sonarqube_enabled ? 1 : 0
   name  = "sonarqube"
-  owner = postgresql_role.sonarqube.name
+  owner = postgresql_role.sonarqube[0].name
 
   depends_on = [postgresql_role.sonarqube]
 }
@@ -55,11 +61,12 @@ resource "postgresql_database" "sonarqube" {
 # -----------------------------------------------------------------------------
 
 resource "helm_release" "sonarqube" {
+  count      = var.sonarqube_enabled ? 1 : 0
   name       = "sonarqube"
   repository = "https://SonarSource.github.io/helm-chart-sonarqube"
   chart      = "sonarqube"
   version    = var.sonarqube_version
-  namespace  = kubernetes_namespace.sonarqube.metadata[0].name
+  namespace  = kubernetes_namespace.sonarqube[0].metadata[0].name
 
   wait    = true
   timeout = 600
@@ -72,7 +79,7 @@ resource "helm_release" "sonarqube" {
       }
 
       # Monitoring passcode (required by new chart versions)
-      monitoringPasscode = random_password.sonarqube_monitoring.result
+      monitoringPasscode = random_password.sonarqube_monitoring[0].result
 
       # Use external CNPG PostgreSQL
       postgresql = {
@@ -80,10 +87,10 @@ resource "helm_release" "sonarqube" {
       }
 
       jdbcOverwrite = {
-        enable   = true
-        jdbcUrl  = "jdbc:postgresql://shared-db-rw.cnpg-system.svc.cluster.local:5432/sonarqube"
-        jdbcUsername = postgresql_role.sonarqube.name
-        jdbcPassword = random_password.pg_sonarqube.result
+        enable       = true
+        jdbcUrl      = "jdbc:postgresql://shared-db-rw.cnpg-system.svc.cluster.local:5432/sonarqube"
+        jdbcUsername = postgresql_role.sonarqube[0].name
+        jdbcPassword = random_password.pg_sonarqube[0].result
       }
 
       # Install MCP Server plugin
