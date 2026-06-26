@@ -1,9 +1,10 @@
 # Terraform
 .terraform/
-.terraform.lock.hcl
+#.terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfvars
+terraform.tfvars.local
 *.tfplan
 
 # IDE

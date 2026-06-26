@@ -31,8 +31,13 @@ terraform {
     }
   }
 
-  backend "local" {
-    path = "terraform.tfstate"
+  # Remote state in the shared CNPG PostgreSQL so it can be used from any machine
+  # with network access to the cluster's Postgres. Connection string is supplied
+  # out-of-band via the PG_CONN_STR env var (contains the superuser password),
+  # never committed:
+  #   export PG_CONN_STR="postgres://postgres:<password>@172.16.1.11:30432/postgres?sslmode=disable"
+  backend "pg" {
+    schema_name = "terraform_platform"
   }
 }
 

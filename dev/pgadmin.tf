@@ -155,24 +155,24 @@ resource "kubernetes_config_map" "pgadmin_servers" {
     "servers.json" = jsonencode({
       Servers = {
         "1" = {
-          Name             = "Shared DB (CNPG)"
-          Group            = "CNPG Cluster"
-          Host             = "shared-db-rw.cnpg-system.svc.cluster.local"
-          Port             = 5432
-          MaintenanceDB    = "postgres"
-          Username         = "postgres"
-          SSLMode          = "prefer"
-          PassFile         = ""
+          Name          = "Shared DB (CNPG)"
+          Group         = "CNPG Cluster"
+          Host          = "shared-db-rw.cnpg-system.svc.cluster.local"
+          Port          = 5432
+          MaintenanceDB = "postgres"
+          Username      = "postgres"
+          SSLMode       = "prefer"
+          PassFile      = ""
         }
         "2" = {
-          Name             = "Shared DB Read-Only"
-          Group            = "CNPG Cluster"
-          Host             = "shared-db-ro.cnpg-system.svc.cluster.local"
-          Port             = 5432
-          MaintenanceDB    = "postgres"
-          Username         = "postgres"
-          SSLMode          = "prefer"
-          PassFile         = ""
+          Name          = "Shared DB Read-Only"
+          Group         = "CNPG Cluster"
+          Host          = "shared-db-ro.cnpg-system.svc.cluster.local"
+          Port          = 5432
+          MaintenanceDB = "postgres"
+          Username      = "postgres"
+          SSLMode       = "prefer"
+          PassFile      = ""
         }
       }
     })

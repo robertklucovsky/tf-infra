@@ -83,7 +83,7 @@ resource "helm_release" "tempo" {
 
         # Metrics generator — derive RED metrics from traces
         metricsGenerator = {
-          enabled = true
+          enabled        = true
           remoteWriteUrl = "http://prometheus-kube-prometheus-prometheus.observability.svc.cluster.local:9090/api/v1/write"
         }
       }
@@ -355,10 +355,10 @@ resource "helm_release" "prometheus_stack" {
             isDefault = false
             jsonData = {
               tracesToLogs = {
-                datasourceUid       = "loki"
-                filterByTraceID     = true
-                filterBySpanID      = false
-                mapTagNamesEnabled  = true
+                datasourceUid      = "loki"
+                filterByTraceID    = true
+                filterBySpanID     = false
+                mapTagNamesEnabled = true
                 mappedTags = [
                   { key = "service.name", value = "service_name" }
                 ]
