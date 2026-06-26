@@ -144,7 +144,7 @@ variable "sonarqube_plugins" {
 variable "pgadmin_version" {
   description = "pgAdmin Docker image tag"
   type        = string
-  default     = "9.12"
+  default     = "9.16"
 }
 
 variable "pgadmin_email" {
