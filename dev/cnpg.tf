@@ -70,7 +70,7 @@ resource "kubectl_manifest" "cnpg_cluster" {
       namespace: cnpg-system
     spec:
       instances: ${var.cnpg_instances}
-      imageName: ghcr.io/cloudnative-pg/postgresql:${var.cnpg_pg_version}
+      imageName: ${var.cnpg_image}
 
       bootstrap:
         initdb:
@@ -97,6 +97,7 @@ resource "kubectl_manifest" "cnpg_cluster" {
           max_connections: "200"
           shared_buffers: "256MB"
           log_statement: "ddl"
+          shared_preload_libraries: "age, pg_stat_statements"
 
       monitoring:
         enablePodMonitor: true

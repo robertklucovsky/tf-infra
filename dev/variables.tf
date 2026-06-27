@@ -91,10 +91,10 @@ variable "cnpg_operator_version" {
   default     = "0.27.0"
 }
 
-variable "cnpg_pg_version" {
-  description = "PostgreSQL version for CNPG cluster"
+variable "cnpg_image" {
+  description = "CNPG operand image — custom build with pgvector + Apache AGE (tag must keep the 17 prefix; never latest)"
   type        = string
-  default     = "17-bookworm"
+  default     = "ghcr.io/robertklucovsky/cnpg-postgresql:17-bookworm-ext.1"
 }
 
 variable "cnpg_instances" {
