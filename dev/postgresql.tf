@@ -108,6 +108,7 @@ resource "terraform_data" "cnpg_preload_ready" {
         POD=$(kubectl $KC get pods -n cnpg-system \
           -l cnpg.io/cluster=shared-db,role=primary \
           -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        VAL=""
         if [ -n "$POD" ]; then
           VAL=$(kubectl $KC exec -n cnpg-system "$POD" -c postgres -- \
             psql -U postgres -tAc "show shared_preload_libraries" 2>/dev/null || true)
