@@ -103,7 +103,7 @@ resource "terraform_data" "cnpg_preload_ready" {
     command = <<-EOT
       set -e
       KC="--kubeconfig ${var.kubeconfig_path} --context ${var.kubeconfig_context}"
-      echo "Waiting for pg_stat_statements in shared_preload_libraries..."
+      echo "Waiting for age + pg_stat_statements in shared_preload_libraries..."
       for i in $(seq 1 60); do
         POD=$(kubectl $KC get pods -n cnpg-system \
           -l cnpg.io/cluster=shared-db,role=primary \
@@ -112,14 +112,14 @@ resource "terraform_data" "cnpg_preload_ready" {
         if [ -n "$POD" ]; then
           VAL=$(kubectl $KC exec -n cnpg-system "$POD" -c postgres -- \
             psql -U postgres -tAc "show shared_preload_libraries" 2>/dev/null || true)
-          case "$VAL" in
-            *pg_stat_statements*) echo "preload ready: $VAL"; exit 0 ;;
-          esac
+          if printf '%s' "$VAL" | grep -q pg_stat_statements && printf '%s' "$VAL" | grep -q age; then
+            echo "preload ready: $VAL"; exit 0
+          fi
         fi
         echo "Attempt $i/60 — not ready (got: $VAL), waiting 5s..."
         sleep 5
       done
-      echo "ERROR: pg_stat_statements not active after 300s"
+      echo "ERROR: age + pg_stat_statements not active after 300s"
       exit 1
     EOT
   }
