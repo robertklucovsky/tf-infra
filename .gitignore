@@ -1,11 +1,17 @@
 # Terraform
 .terraform/
-#.terraform.lock.hcl
+.terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.backup
-terraform.tfvars
 terraform.tfvars.local
+*.auto.tfvars
 *.tfplan
+tfplan
+
+# Credentials (generated)
+.credentials.json
+*.pem
+*.key
 
 # IDE
 .idea/
@@ -13,3 +19,4 @@ terraform.tfvars.local
 
 # OS
 .DS_Store
+Thumbs.db

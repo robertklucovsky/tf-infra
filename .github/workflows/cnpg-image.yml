@@ -1,9 +1,6 @@
 name: Build CNPG operand image
 
 on:
-  push:
-    tags:
-      - 'cnpg-image-*'
   workflow_dispatch:
     inputs:
       tag:
