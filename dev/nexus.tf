@@ -224,7 +224,13 @@ resource "kubernetes_job_v1" "nexus_admin_capture" {
       }
     }
 
-    ttl_seconds_after_finished = 600
+    # No ttl_seconds_after_finished: if the completed Job is garbage-collected,
+    # Terraform's next refresh sees it missing and plans to recreate it. Because
+    # data.kubernetes_secret.nexus_credentials depends_on this Job, that pending
+    # change defers the data-source read to apply, leaving the nexus provider
+    # configured with unknown credentials → 401 when refreshing existing repos.
+    # Keeping the completed Job around avoids that churn. It is cleaned up when
+    # the nexus namespace is destroyed.
   }
 
   wait_for_completion = true
@@ -245,5 +251,43 @@ data "kubernetes_secret" "nexus_credentials" {
     namespace = kubernetes_namespace.nexus.metadata[0].name
   }
   depends_on = [kubernetes_job_v1.nexus_admin_capture]
+}
+
+# -----------------------------------------------------------------------------
+# READINESS CHECK — Wait for the Nexus REST API to actually accept requests
+# Nexus's container readiness probe flips to ready (and admin.password is
+# written, unblocking nexus_admin_capture) several minutes before its REST
+# repository-management API is reliably serving through the gateway. On a fresh
+# apply, creating nexus_repository_* resources in that window fails with
+# "connection reset by peer". Poll the same external endpoint the nexus provider
+# uses (/status/writable, which only returns 200 once Nexus can accept writes)
+# and require 3 consecutive successes to ride out the flapping startup window
+# before any repository is created.
+# -----------------------------------------------------------------------------
+
+resource "terraform_data" "nexus_ready" {
+  depends_on = [data.kubernetes_secret.nexus_credentials]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      URL="https://nexus.klucovsky.com/service/rest/v1/status/writable"
+      echo "Waiting for Nexus REST API at $URL ..."
+      OK=0
+      for i in $(seq 1 90); do
+        CODE=$(curl -sS -o /dev/null -w '%%{http_code}' --max-time 10 "$URL" 2>/dev/null || echo 000)
+        if [ "$CODE" = "200" ]; then
+          OK=$((OK + 1))
+          echo "Attempt $i/90 — 200 (consecutive $OK/3)"
+          [ "$OK" -ge 3 ] && { echo "Nexus REST API is ready!"; exit 0; }
+        else
+          OK=0
+          echo "Attempt $i/90 — got $CODE, waiting 5s..."
+        fi
+        sleep 5
+      done
+      echo "ERROR: Nexus REST API did not become ready in time"
+      exit 1
+    EOT
+  }
 }
 

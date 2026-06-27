@@ -13,6 +13,9 @@ resource "nexus_repository_npm_proxy" "npmjs" {
   name   = "npm-proxy"
   online = true
 
+  # Wait until the Nexus REST API is reliably serving (see terraform_data.nexus_ready).
+  depends_on = [terraform_data.nexus_ready]
+
   storage {
     blob_store_name                = "default"
     strict_content_type_validation = true
@@ -36,6 +39,9 @@ resource "nexus_repository_npm_proxy" "npmjs" {
 resource "nexus_repository_npm_hosted" "internal" {
   name   = "npm-hosted"
   online = true
+
+  # Wait until the Nexus REST API is reliably serving (see terraform_data.nexus_ready).
+  depends_on = [terraform_data.nexus_ready]
 
   storage {
     blob_store_name                = "default"
