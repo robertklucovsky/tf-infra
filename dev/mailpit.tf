@@ -44,7 +44,7 @@ resource "kubernetes_deployment" "mailpit" {
       spec {
         container {
           name  = "mailpit"
-          image = "axllent/mailpit:v1.24"
+          image = "axllent/mailpit:v1.30.2"
 
           port {
             name           = "smtp"

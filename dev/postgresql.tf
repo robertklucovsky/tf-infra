@@ -102,7 +102,15 @@ resource "terraform_data" "cnpg_preload_ready" {
   provisioner "local-exec" {
     command = <<-EOT
       set -e
-      KC="--kubeconfig ${var.kubeconfig_path} --context ${var.kubeconfig_context}"
+      # Expand a leading ~ — /bin/sh does not perform tilde expansion on the
+      # value of a quoted variable, so kubectl would otherwise receive a literal
+      # "~/.kube/config" and fail ("stat ~/.kube/config: no such file").
+      KCFG="${var.kubeconfig_path}"
+      case "$KCFG" in
+        "~/"*) KCFG="$HOME/$${KCFG#\~/}" ;;
+        "~")   KCFG="$HOME" ;;
+      esac
+      KC="--kubeconfig $KCFG --context ${var.kubeconfig_context}"
       echo "Waiting for age + pg_stat_statements in shared_preload_libraries..."
       for i in $(seq 1 60); do
         POD=$(kubectl $KC get pods -n cnpg-system \

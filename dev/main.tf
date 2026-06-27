@@ -36,8 +36,12 @@ terraform {
   # out-of-band via the PG_CONN_STR env var (contains the superuser password),
   # never committed:
   #   export PG_CONN_STR="postgres://postgres:<password>@172.16.1.11:30432/postgres?sslmode=disable"
-  backend "pg" {
-    schema_name = "terraform_platform"
+  # TEMPORARY: state migrated from the pg backend to a local file for teardown,
+  # so `terraform destroy` doesn't depend on the CNPG Postgres it tears down.
+  # Restore the pg backend below if this repo is ever re-applied:
+  #   backend "pg" { schema_name = "terraform_platform" }
+  backend "local" {
+    path = "terraform.tfstate"
   }
 }
 

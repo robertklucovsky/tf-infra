@@ -41,7 +41,7 @@ resource "kubernetes_deployment" "pgadmin" {
 
         init_container {
           name  = "fix-permissions"
-          image = "busybox:1.36"
+          image = "busybox:1.38"
 
           command = ["sh", "-c", "chown -R 5050:5050 /var/lib/pgadmin"]
 

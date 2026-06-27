@@ -62,12 +62,33 @@ resource "helm_release" "nexus" {
         tag        = var.nexus_image_tag
       }
       nexus = {
+        # The chart's default INSTALL4J_ADD_VM_PARAMS carries Java 8 flags
+        # (-XX:+UseCGroupMemoryLimitForHeap, removed in Java 10) that abort the
+        # JVM on the Java 17-based nexus3 >= 3.71 images. Override the env to
+        # drop those flags. Overriding this list replaces the chart default
+        # entirely, so NEXUS_SECURITY_RANDOMPASSWORD must be re-declared here —
+        # the admin-password-capture Job below relies on it.
+        env = [
+          {
+            name = "INSTALL4J_ADD_VM_PARAMS"
+            value = join(" ", [
+              "-Xms2703M", "-Xmx2703M",
+              "-XX:MaxDirectMemorySize=2703M",
+              "-Djava.util.prefs.userRoot=/nexus-data/javaprefs",
+            ])
+          },
+          {
+            name  = "NEXUS_SECURITY_RANDOMPASSWORD"
+            value = "true"
+          },
+        ]
         # Node is small (4 cpu) and already 88% requested by other workloads,
-        # so keep cpu/memory requests modest. Limits are higher to allow
-        # Nexus to use spare capacity during burst.
+        # so keep cpu/memory requests modest. Memory limit must accommodate the
+        # 2703M heap + up to 2703M direct memory + JVM overhead (node has ~31Gi,
+        # lightly used), so allow 6Gi; cpu limit allows burst.
         resources = {
           requests = { cpu = "200m", memory = "1Gi" }
-          limits   = { cpu = "2000m", memory = "3Gi" }
+          limits   = { cpu = "2000m", memory = "6Gi" }
         }
       }
       persistence = {

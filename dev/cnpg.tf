@@ -93,11 +93,17 @@ resource "kubectl_manifest" "cnpg_cluster" {
         resizeInUseVolumes: false
 
       postgresql:
+        # shared_preload_libraries must be set via this dedicated list field;
+        # newer CNPG (operator >= 1.26 / chart >= 0.28) rejects it when placed
+        # under spec.postgresql.parameters ("Can't set fixed configuration
+        # parameter").
+        shared_preload_libraries:
+          - age
+          - pg_stat_statements
         parameters:
           max_connections: "200"
           shared_buffers: "256MB"
           log_statement: "ddl"
-          shared_preload_libraries: "age, pg_stat_statements"
 
       monitoring:
         enablePodMonitor: true

@@ -56,7 +56,7 @@ resource "kubernetes_stateful_set" "keycloak" {
       spec {
         container {
           name  = "keycloak"
-          image = "quay.io/keycloak/keycloak:26.5.3"
+          image = "quay.io/keycloak/keycloak:26.6.4"
 
           args = ["start-dev", "--health-enabled=true"]
 

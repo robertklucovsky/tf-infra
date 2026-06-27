@@ -37,7 +37,7 @@ variable "server_host" {
 variable "cert_manager_version" {
   description = "cert-manager Helm chart version"
   type        = string
-  default     = "v1.19.3"
+  default     = "v1.20.3"
 }
 
 variable "digitalocean_token" {
@@ -88,7 +88,7 @@ variable "postgres_superuser_password" {
 variable "cnpg_operator_version" {
   description = "CloudNativePG operator Helm chart version"
   type        = string
-  default     = "0.27.0"
+  default     = "0.28.3"
 }
 
 variable "cnpg_image" {
@@ -128,7 +128,7 @@ variable "sonarqube_enabled" {
 variable "sonarqube_version" {
   description = "SonarQube Helm chart version"
   type        = string
-  default     = "2026.1.0"
+  default     = "2026.3.1"
 }
 
 variable "sonarqube_plugins" {
@@ -191,13 +191,13 @@ variable "keycloak_admin_user" {
 variable "tempo_chart_version" {
   description = "Grafana Tempo Helm chart version"
   type        = string
-  default     = "1.24.1"
+  default     = "1.24.4"
 }
 
 variable "loki_chart_version" {
   description = "Grafana Loki Helm chart version"
   type        = string
-  default     = "6.53.0"
+  default     = "7.0.0"
 }
 
 variable "promtail_chart_version" {
@@ -209,7 +209,7 @@ variable "promtail_chart_version" {
 variable "prometheus_stack_version" {
   description = "kube-prometheus-stack Helm chart version"
   type        = string
-  default     = "81.6.9"
+  default     = "87.2.1"
 }
 
 variable "grafana_admin_user" {
@@ -225,7 +225,7 @@ variable "grafana_admin_user" {
 variable "argocd_version" {
   description = "ArgoCD Helm chart version"
   type        = string
-  default     = "9.4.2"
+  default     = "10.0.0"
 }
 
 # -----------------------------------------------------------------------------
@@ -235,7 +235,7 @@ variable "argocd_version" {
 variable "arc_controller_chart_version" {
   description = "gha-runner-scale-set-controller OCI chart version"
   type        = string
-  default     = "0.9.3"
+  default     = "0.14.2"
 }
 
 # -----------------------------------------------------------------------------
@@ -245,7 +245,7 @@ variable "arc_controller_chart_version" {
 variable "zot_chart_version" {
   description = "Zot Helm chart version"
   type        = string
-  default     = "0.1.66"
+  default     = "0.1.118"
 }
 
 variable "zot_admin_user" {
@@ -275,10 +275,12 @@ variable "nexus_storage_size" {
 }
 
 # Nexus application (image) version is decoupled from the Helm chart version.
-# The chart 64.2.0 ships sonatype/nexus3:3.64.0 by default, which carries a
-# critical security issue; override the image tag to >= 3.68.1.
+# The chart 64.2.0 ships sonatype/nexus3:3.64.0 by default; override the image
+# tag to the latest 3.x. NOTE: the nexus-repository-manager chart is deprecated
+# and pinned at 64.2.0, so verify the newer image still boots cleanly under this
+# old chart on the next apply (fresh deploy initializes a new data dir).
 variable "nexus_image_tag" {
   description = "sonatype/nexus3 image tag (Nexus application version)"
   type        = string
-  default     = "3.68.1"
+  default     = "3.93.2"
 }
