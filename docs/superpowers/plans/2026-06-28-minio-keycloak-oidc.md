@@ -1,5 +1,12 @@
 # MinIO ↔ Keycloak OIDC Implementation Plan
 
+> **⚠️ SUPERSEDED (2026-06-28).** This plan implemented a platform-side
+> `minio_oidc_projects` map (StatefulSet env vars + generated handoff Secret). It
+> was implemented, merged, then **reverted** in favor of fully tenant-owned
+> registration via the `minio_iam_idp_openid` resource. See the design spec's
+> "Revision note" and `README.md` → "MinIO OIDC (Keycloak) per project" for the
+> current model. Kept for historical context only.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let MinIO users authenticate/authorize against Keycloak, with one role-based OIDC provider per project realm, driven by a Terraform map and a generated per-project credential handoff.
