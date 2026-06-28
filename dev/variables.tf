@@ -193,6 +193,10 @@ variable "minio_oidc_projects" {
     provider_enabled = optional(bool, false)     # phase gate: render provider env only after realm+policies exist
   }))
   default = {}
+  validation {
+    condition     = alltrue([for k in keys(var.minio_oidc_projects) : can(regex("^[a-z0-9-]+$", k))])
+    error_message = "Keys in minio_oidc_projects must contain only lowercase letters, digits, and hyphens (they are transformed into MinIO env-var suffixes)."
+  }
 }
 
 # -----------------------------------------------------------------------------
