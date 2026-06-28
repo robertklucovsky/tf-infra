@@ -93,11 +93,15 @@ data "kubernetes_secret" "minio_admin" {
   }
 }
 
+# Use the SAME minio provider config the project already uses to provision its
+# buckets/access keys. The provider talks to the MinIO S3 API (port 9000), NOT
+# the console (s3.klucovsky.com routes to the console on 9001). The S3 API is a
+# NodePort on 30900; MinIO here runs without TLS, so minio_ssl = false.
 provider "minio" {
-  minio_server   = "s3.klucovsky.com"   # API endpoint
+  minio_server   = "172.16.1.11:30900"   # cluster node IP : api NodePort
   minio_user     = data.kubernetes_secret.minio_admin.data["username"]
   minio_password = data.kubernetes_secret.minio_admin.data["password"]
-  minio_ssl      = true
+  minio_ssl      = false
 }
 
 # 1. Realm + confidential client for MinIO
