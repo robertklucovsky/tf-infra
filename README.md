@@ -67,3 +67,22 @@ rotate it in both places.
 
 - FATTO ERP — `/Users/robert.klucovsky/Developer/fatto/fatto-erp/tf-infra/`
 - GitLab (planned) — to be added as another `.tf` file in `dev/`
+
+### MinIO OIDC (Keycloak) per project
+
+The platform registers one role-based MinIO OIDC provider per project, driven by
+`var.minio_oidc_projects`, and publishes a generated `client_secret` as the
+`minio-oidc-<project>` Secret in the `minio` namespace. Each tenant repo owns its
+realm and bucket access:
+
+1. **Platform apply #1** — add the project to `minio_oidc_projects` with
+   `provider_enabled = false`. This publishes `minio-oidc-<project>`.
+2. **Tenant repo** — read `minio-oidc-<project>`; create the `keycloak_realm`,
+   a confidential `keycloak_openid_client` (standard flow, valid redirect URI
+   `https://s3.klucovsky.com/oauth_callback`, client_id/secret from the Secret),
+   the `minio_iam_policy` resources named in the entry's `role_policy`, and the
+   buckets.
+3. **Platform apply #2** — set `provider_enabled = true` so MinIO loads the
+   provider.
+
+Full design: `docs/superpowers/specs/2026-06-28-minio-keycloak-oidc-design.md`.
