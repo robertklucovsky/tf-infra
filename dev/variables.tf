@@ -174,6 +174,27 @@ variable "minio_root_user" {
   default     = "minio-admin"
 }
 
+variable "minio_oidc_projects" {
+  description = <<-EOT
+    MinIO OIDC providers, keyed by project. One Keycloak realm per entry,
+    configured as a role-based provider (all users in a realm get the same
+    role_policy). The client_secret is generated and published via the
+    minio-oidc-<key> Secret in the minio namespace; the tenant repo reads it
+    to create a matching Keycloak client. Set provider_enabled=true only after
+    the realm + the role_policy's MinIO policies exist (see the design spec).
+    Map keys must be lowercase alphanumerics and "-".
+  EOT
+  type = map(object({
+    display_name     = string                    # SSO button label on the console login page
+    realm            = string                    # Keycloak realm name -> builds config_url
+    client_id        = optional(string, "minio") # must match the tenant's keycloak_openid_client
+    role_policy      = string                    # comma-separated MinIO policy names for this realm's users
+    scopes           = optional(string, "openid")
+    provider_enabled = optional(bool, false)     # phase gate: render provider env only after realm+policies exist
+  }))
+  default = {}
+}
+
 # -----------------------------------------------------------------------------
 # KEYCLOAK
 # -----------------------------------------------------------------------------
