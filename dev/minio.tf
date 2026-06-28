@@ -40,6 +40,42 @@ resource "kubernetes_secret" "minio_admin" {
   }
 }
 
+# -----------------------------------------------------------------------------
+# OIDC PROVIDER CREDENTIAL HANDOFF (per project / realm)
+# The client_secret is generated here and published as minio-oidc-<key> in the
+# minio namespace. Each tenant repo reads it to create a Keycloak client whose
+# client_id/client_secret match this provider. Published for every entry so the
+# tenant can build its realm before the provider is enabled (see provider_enabled).
+# -----------------------------------------------------------------------------
+
+resource "random_password" "minio_oidc" {
+  for_each = var.minio_oidc_projects
+  length   = 32
+  special  = false
+}
+
+resource "kubernetes_secret" "minio_oidc" {
+  for_each = var.minio_oidc_projects
+
+  metadata {
+    name      = "minio-oidc-${each.key}"
+    namespace = kubernetes_namespace.minio.metadata[0].name
+
+    labels = {
+      "app.kubernetes.io/name"       = "minio"
+      "app.kubernetes.io/component"  = "oidc-credentials"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  data = {
+    client_id     = each.value.client_id
+    client_secret = random_password.minio_oidc[each.key].result
+    config_url    = "https://auth.klucovsky.com/realms/${each.value.realm}/.well-known/openid-configuration"
+    realm         = each.value.realm
+  }
+}
+
 resource "kubernetes_stateful_set" "minio" {
   metadata {
     name      = "minio"
