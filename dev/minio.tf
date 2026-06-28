@@ -4,6 +4,25 @@
 # https://hub.docker.com/r/minio/minio
 # -----------------------------------------------------------------------------
 
+locals {
+  # Only projects whose realm + role_policy already exist should load as providers.
+  minio_oidc_enabled = { for k, v in var.minio_oidc_projects : k => v if v.provider_enabled }
+
+  # Flatten each enabled project into MinIO's suffixed named-provider env vars.
+  # Suffix = upper(key) with "-" -> "_" (valid MinIO config name + env token).
+  minio_oidc_env = merge([
+    for k, v in local.minio_oidc_enabled : {
+      "MINIO_IDENTITY_OPENID_CONFIG_URL_${upper(replace(k, "-", "_"))}"           = "https://auth.klucovsky.com/realms/${v.realm}/.well-known/openid-configuration"
+      "MINIO_IDENTITY_OPENID_CLIENT_ID_${upper(replace(k, "-", "_"))}"            = v.client_id
+      "MINIO_IDENTITY_OPENID_CLIENT_SECRET_${upper(replace(k, "-", "_"))}"        = random_password.minio_oidc[k].result
+      "MINIO_IDENTITY_OPENID_DISPLAY_NAME_${upper(replace(k, "-", "_"))}"         = v.display_name
+      "MINIO_IDENTITY_OPENID_ROLE_POLICY_${upper(replace(k, "-", "_"))}"          = v.role_policy
+      "MINIO_IDENTITY_OPENID_SCOPES_${upper(replace(k, "-", "_"))}"               = v.scopes
+      "MINIO_IDENTITY_OPENID_REDIRECT_URI_DYNAMIC_${upper(replace(k, "-", "_"))}" = "on"
+    }
+  ]...)
+}
+
 resource "kubernetes_namespace" "minio" {
   metadata {
     name = "minio"
@@ -37,6 +56,42 @@ resource "kubernetes_secret" "minio_admin" {
   data = {
     username = var.minio_root_user
     password = random_password.minio_password.result
+  }
+}
+
+# -----------------------------------------------------------------------------
+# OIDC PROVIDER CREDENTIAL HANDOFF (per project / realm)
+# The client_secret is generated here and published as minio-oidc-<key> in the
+# minio namespace. Each tenant repo reads it to create a Keycloak client whose
+# client_id/client_secret match this provider. Published for every entry so the
+# tenant can build its realm before the provider is enabled (see provider_enabled).
+# -----------------------------------------------------------------------------
+
+resource "random_password" "minio_oidc" {
+  for_each = var.minio_oidc_projects
+  length   = 32
+  special  = false
+}
+
+resource "kubernetes_secret" "minio_oidc" {
+  for_each = var.minio_oidc_projects
+
+  metadata {
+    name      = "minio-oidc-${each.key}"
+    namespace = kubernetes_namespace.minio.metadata[0].name
+
+    labels = {
+      "app.kubernetes.io/name"       = "minio"
+      "app.kubernetes.io/component"  = "oidc-credentials"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  data = {
+    client_id     = each.value.client_id
+    client_secret = random_password.minio_oidc[each.key].result
+    config_url    = "https://auth.klucovsky.com/realms/${each.value.realm}/.well-known/openid-configuration"
+    realm         = each.value.realm
   }
 }
 
@@ -82,6 +137,15 @@ resource "kubernetes_stateful_set" "minio" {
           env {
             name  = "MINIO_ROOT_PASSWORD"
             value = random_password.minio_password.result
+          }
+
+          # Named OIDC providers (one per enabled project/realm), role-based.
+          dynamic "env" {
+            for_each = local.minio_oidc_env
+            content {
+              name  = env.key
+              value = env.value
+            }
           }
 
           port {
