@@ -83,4 +83,8 @@ provider "nexus" {
   username = data.kubernetes_secret.nexus_credentials.data["username"]
   password = data.kubernetes_secret.nexus_credentials.data["password"]
   insecure = false
+  # Tolerate transient API/LAN slowness during plan-time refresh GETs. Without
+  # this, a single slow response trips the provider's HTTP client timeout
+  # ("context deadline exceeded while awaiting headers") and fails the whole plan.
+  timeout = 60
 }
