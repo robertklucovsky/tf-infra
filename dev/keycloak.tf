@@ -19,6 +19,33 @@ resource "kubernetes_namespace" "keycloak" {
 }
 
 # -----------------------------------------------------------------------------
+# ADMIN CREDENTIALS HANDOFF
+# Tenant repos that own their Keycloak↔MinIO OIDC wiring need Keycloak admin
+# creds to provision their realm/clients/mappers via the Keycloak Terraform
+# provider. Published as a Secret here (same pattern as minio-admin) so tenants
+# can read it via data.kubernetes_secret without coupling to this repo's state.
+# -----------------------------------------------------------------------------
+
+resource "kubernetes_secret" "keycloak_admin" {
+  metadata {
+    name      = "keycloak-admin"
+    namespace = kubernetes_namespace.keycloak.metadata[0].name
+
+    labels = {
+      "app.kubernetes.io/name"       = "keycloak"
+      "app.kubernetes.io/component"  = "admin-credentials"
+      "app.kubernetes.io/managed-by" = "terraform"
+    }
+  }
+
+  data = {
+    username = var.keycloak_admin_user
+    password = random_password.keycloak_password.result
+    url      = "https://auth.klucovsky.com"
+  }
+}
+
+# -----------------------------------------------------------------------------
 # STATEFULSET
 #
 # Vanilla Keycloak: no realm import, no custom theme. Realms + login themes are
