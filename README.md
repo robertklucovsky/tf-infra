@@ -70,19 +70,86 @@ rotate it in both places.
 
 ### MinIO OIDC (Keycloak) per project
 
-The platform registers one role-based MinIO OIDC provider per project, driven by
-`var.minio_oidc_projects`, and publishes a generated `client_secret` as the
-`minio-oidc-<project>` Secret in the `minio` namespace. Each tenant repo owns its
-realm and bucket access:
+The platform is **project-agnostic** for OIDC: it just runs MinIO + Keycloak and
+publishes the `minio-admin` Secret in the `minio` namespace. **Each project's
+`tf-infra` owns its entire MinIO ↔ Keycloak wiring** — realm, client, policies,
+buckets, *and* the MinIO provider registration — via the `keycloak` and `minio`
+Terraform providers. Nothing in this platform repo needs editing to onboard a
+project.
 
-1. **Platform apply #1** — add the project to `minio_oidc_projects` with
-   `provider_enabled = false`. This publishes `minio-oidc-<project>`.
-2. **Tenant repo** — read `minio-oidc-<project>`; create the `keycloak_realm`,
-   a confidential `keycloak_openid_client` (standard flow, valid redirect URI
-   `https://s3.klucovsky.com/oauth_callback`, client_id/secret from the Secret),
-   the `minio_iam_policy` resources named in the entry's `role_policy`, and the
-   buckets.
-3. **Platform apply #2** — set `provider_enabled = true` so MinIO loads the
-   provider.
+MinIO supports multiple named OIDC providers but **only one may be JWT-claim-based;
+all others must be role-based** (a fixed `role_policy` for every user of that
+realm). So each project registers a **role-based** provider: all users in its
+realm get the same bucket access.
+
+In the project `tf-infra`, configure both providers and add:
+
+```hcl
+# Admin creds published by the platform (cross-namespace read)
+data "kubernetes_secret" "minio_admin" {
+  metadata {
+    name      = "minio-admin"
+    namespace = "minio"
+  }
+}
+
+provider "minio" {
+  minio_server   = "s3.klucovsky.com"   # API endpoint
+  minio_user     = data.kubernetes_secret.minio_admin.data["username"]
+  minio_password = data.kubernetes_secret.minio_admin.data["password"]
+  minio_ssl      = true
+}
+
+# 1. Realm + confidential client for MinIO
+resource "keycloak_realm" "this" {
+  realm = "projecta"
+}
+
+resource "keycloak_openid_client" "minio" {
+  realm_id              = keycloak_realm.this.id
+  client_id             = "minio"
+  access_type           = "CONFIDENTIAL"
+  standard_flow_enabled = true
+  valid_redirect_uris   = ["https://s3.klucovsky.com/oauth_callback"]
+  web_origins           = ["https://s3.klucovsky.com"]
+}
+
+# 2. The MinIO policy granting this project's bucket access (role-based target)
+resource "minio_iam_policy" "rw" {
+  name   = "projecta-rw"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:*"]
+      Resource = ["arn:aws:s3:::projecta-*", "arn:aws:s3:::projecta-*/*"]
+    }]
+  })
+}
+
+resource "minio_s3_bucket" "data" {
+  bucket = "projecta-data"
+}
+
+# 3. Register the realm as a role-based OIDC provider on MinIO
+resource "minio_iam_idp_openid" "keycloak" {
+  name          = "projecta"   # provider config name (login-screen group)
+  config_url    = "https://auth.klucovsky.com/realms/${keycloak_realm.this.realm}/.well-known/openid-configuration"
+  client_id     = keycloak_openid_client.minio.client_id
+  client_secret = keycloak_openid_client.minio.client_secret
+  role_policy   = minio_iam_policy.rw.name   # role-based; do NOT set claim_name
+  display_name  = "Project A"
+  scopes        = "openid"
+  redirect_uri  = "https://s3.klucovsky.com/oauth_callback"
+}
+```
+
+Users then open `https://s3.klucovsky.com`, pick "Project A" on the login screen,
+authenticate against the realm, and receive the `projecta-rw` policy.
+
+> The MinIO provider registration is runtime config (MinIO admin API), so the
+> platform MUST NOT also set `MINIO_IDENTITY_OPENID_*` env vars on the MinIO
+> StatefulSet — env-set keys are locked against API override. The platform
+> intentionally sets none.
 
 Full design: `docs/superpowers/specs/2026-06-28-minio-keycloak-oidc-design.md`.
