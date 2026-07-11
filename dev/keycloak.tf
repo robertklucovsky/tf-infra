@@ -22,7 +22,7 @@ resource "kubernetes_namespace" "keycloak" {
 # ADMIN CREDENTIALS HANDOFF
 # Tenant repos that own their Keycloak↔MinIO OIDC wiring need Keycloak admin
 # creds to provision their realm/clients/mappers via the Keycloak Terraform
-# provider. Published as a Secret here (same pattern as minio-admin) so tenants
+# provider. Published as a Secret here (same pattern as rustfs-admin) so tenants
 # can read it via data.kubernetes_secret without coupling to this repo's state.
 # -----------------------------------------------------------------------------
 

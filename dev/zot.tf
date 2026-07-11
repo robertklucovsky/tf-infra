@@ -90,23 +90,23 @@ resource "kubernetes_job_v1" "zot_bucket_init" {
           args = [
             <<-EOT
               set -e
-              mc alias set local http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              mc alias set local http://rustfs.${kubernetes_namespace.rustfs.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
               mc mb --ignore-existing local/zot-storage
               echo "zot-storage bucket ready"
             EOT
           ]
 
           # NOTE: the tenant credentials Secret lives in the tenant namespace
-          # and Kubernetes Secrets are namespace-scoped, so we source the MinIO
-          # password directly from the `random_password.minio_password` resource
+          # and Kubernetes Secrets are namespace-scoped, so we source the RustFS
+          # password directly from the `random_password.rustfs_password` resource
           # (the same way the Zot Helm release does below).
           env {
             name  = "MINIO_ROOT_USER"
-            value = var.minio_root_user
+            value = "rustfs-admin"
           }
           env {
             name  = "MINIO_ROOT_PASSWORD"
-            value = random_password.minio_password.result
+            value = random_password.rustfs_password.result
           }
         }
       }
@@ -121,7 +121,8 @@ resource "kubernetes_job_v1" "zot_bucket_init" {
   }
 
   depends_on = [
-    random_password.minio_password,
+    random_password.rustfs_password,
+    kubernetes_stateful_set.rustfs,
   ]
 }
 
@@ -162,13 +163,13 @@ resource "helm_release" "zot" {
               name           = "s3"
               rootdirectory  = "/zot"
               region         = "us-east-1"
-              regionendpoint = "http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000"
+              regionendpoint = "http://rustfs.${kubernetes_namespace.rustfs.metadata[0].name}.svc.cluster.local:9000"
               bucket         = "zot-storage"
               forcepathstyle = true
               secure         = false
               skipverify     = true
-              accesskey      = var.minio_root_user
-              secretkey      = random_password.minio_password.result
+              accesskey      = "rustfs-admin"
+              secretkey      = random_password.rustfs_password.result
             }
           }
           http = {

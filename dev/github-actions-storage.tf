@@ -1,17 +1,17 @@
 # -----------------------------------------------------------------------------
-# GITHUB ACTIONS STORAGE — MinIO bucket for workflow cache + artifacts
+# GITHUB ACTIONS STORAGE — RustFS bucket for workflow cache + artifacts
 #
 # Consumed by GitHub Actions workflows via tespkg/actions-cache (cache) and
 # direct `mc cp` (artifacts). Workflow YAML changes live in consumer repos.
 #
-# The bucket-init Job uses random_password.minio_password directly rather than
-# a secretRef. Runs in the `minio` namespace (platform-owned CI concern).
+# The bucket-init Job uses random_password.rustfs_password directly rather than
+# a secretRef. Runs in the `rustfs` namespace (platform-owned CI concern).
 # -----------------------------------------------------------------------------
 
 resource "kubernetes_job_v1" "github_actions_bucket_init" {
   metadata {
     name      = "github-actions-bucket-init"
-    namespace = kubernetes_namespace.minio.metadata[0].name
+    namespace = kubernetes_namespace.rustfs.metadata[0].name
   }
 
   spec {
@@ -31,7 +31,7 @@ resource "kubernetes_job_v1" "github_actions_bucket_init" {
           args = [
             <<-EOT
               set -e
-              mc alias set local http://minio.${kubernetes_namespace.minio.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+              mc alias set local http://rustfs.${kubernetes_namespace.rustfs.metadata[0].name}.svc.cluster.local:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
               mc mb --ignore-existing local/github-actions
               echo "github-actions bucket ready"
             EOT
@@ -39,11 +39,11 @@ resource "kubernetes_job_v1" "github_actions_bucket_init" {
 
           env {
             name  = "MINIO_ROOT_USER"
-            value = var.minio_root_user
+            value = "rustfs-admin"
           }
           env {
             name  = "MINIO_ROOT_PASSWORD"
-            value = random_password.minio_password.result
+            value = random_password.rustfs_password.result
           }
         }
       }
@@ -57,5 +57,5 @@ resource "kubernetes_job_v1" "github_actions_bucket_init" {
     create = "5m"
   }
 
-  depends_on = [kubernetes_namespace.minio]
+  depends_on = [kubernetes_stateful_set.rustfs]
 }

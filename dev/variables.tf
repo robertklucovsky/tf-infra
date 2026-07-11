@@ -159,22 +159,6 @@ variable "pgadmin_email" {
 
 
 # -----------------------------------------------------------------------------
-# MINIO
-# -----------------------------------------------------------------------------
-
-variable "minio_storage_size" {
-  description = "MinIO PVC storage size"
-  type        = string
-  default     = "10Gi"
-}
-
-variable "minio_root_user" {
-  description = "MinIO root user"
-  type        = string
-  default     = "minio-admin"
-}
-
-# -----------------------------------------------------------------------------
 # KEYCLOAK
 # -----------------------------------------------------------------------------
 
@@ -239,7 +223,7 @@ variable "arc_controller_chart_version" {
 }
 
 # -----------------------------------------------------------------------------
-# ZOT (Container registry, MinIO-backed)
+# ZOT (Container registry, RustFS-backed)
 # -----------------------------------------------------------------------------
 
 variable "zot_chart_version" {
@@ -283,4 +267,23 @@ variable "nexus_image_tag" {
   description = "sonatype/nexus3 image tag (Nexus application version)"
   type        = string
   default     = "3.93.2"
+}
+
+# -----------------------------------------------------------------------------
+# RUSTFS (MinIO replacement)
+# -----------------------------------------------------------------------------
+
+# Client secret of the `minio` client in the fatto-aac Keycloak realm, used by
+# RustFS for OIDC (console SSO + STS policy-claim federation). MUST match the
+# tenant's `minio_oidc_client_secret` (fatto-aac tf-infra secrets). See rustfs.tf.
+variable "rustfs_oidc_client_secret" {
+  description = "OIDC client secret for RustFS (fatto-aac realm, client 'minio')"
+  type        = string
+  sensitive   = true
+}
+
+variable "rustfs_storage_size" {
+  description = "RustFS PVC storage size"
+  type        = string
+  default     = "20Gi"
 }

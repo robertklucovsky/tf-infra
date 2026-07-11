@@ -63,10 +63,12 @@ locals {
       backend   = "mailpit"
       port      = 8025
     }
-    minio = {
-      namespace = "minio"
+    # RustFS console listener = full server (S3 + admin + console UI), so a
+    # single backend covers S3 API, STS, OIDC callback and /rustfs/console/.
+    rustfs = {
+      namespace = "rustfs"
       hostname  = "s3.klucovsky.com"
-      backend   = "minio"
+      backend   = "rustfs"
       port      = 9001
     }
     }, var.sonarqube_enabled ? {
@@ -103,6 +105,42 @@ resource "kubectl_manifest" "platform_tool_route" {
           backendRefs:
             - name: ${each.value.backend}
               port: ${each.value.port}
+  YAML
+
+  depends_on = [kubectl_manifest.platform_terminating_gw]
+}
+
+# SSO shortcut: fatto-aac.klucovsky.com 302-redirects straight into the RustFS
+# OIDC authorize flow — Keycloak login (or silent SSO) → storage console,
+# skipping the console login page. DNS record lives in dns.tf.
+resource "kubectl_manifest" "fatto_aac_sso_redirect" {
+  yaml_body = <<-YAML
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: fatto-aac-sso-redirect
+      namespace: rustfs
+    spec:
+      parentRefs:
+        - name: platform-terminating
+          namespace: gateway
+          sectionName: https-klucovsky
+      hostnames:
+        - "fatto-aac.klucovsky.com"
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                hostname: s3.klucovsky.com
+                path:
+                  type: ReplaceFullPath
+                  replaceFullPath: /rustfs/admin/v3/oidc/authorize/default
+                statusCode: 302
   YAML
 
   depends_on = [kubectl_manifest.platform_terminating_gw]
