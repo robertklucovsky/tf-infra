@@ -29,6 +29,10 @@ terraform {
       source  = "datadrivers/nexus"
       version = "~> 2.0"
     }
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.0"
+    }
   }
 
   # Remote state in the shared CNPG PostgreSQL so it can be used from any machine
@@ -87,4 +91,10 @@ provider "nexus" {
   # this, a single slow response trips the provider's HTTP client timeout
   # ("context deadline exceeded while awaiting headers") and fails the whole plan.
   timeout = 60
+}
+
+# DigitalOcean provider — manages DNS records in the klucovsky.com zone
+# (the same token cert-manager uses for DNS-01 challenges).
+provider "digitalocean" {
+  token = var.digitalocean_token
 }
