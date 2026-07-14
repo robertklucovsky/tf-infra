@@ -129,6 +129,28 @@ Nasledujúce zistenia majú štrukturálny charakter — nevznikajú z jedného 
 
 ## 6. Prioritizované odporúčania
 
+Odporúčania sú rozdelené do troch časových horizontov podľa naliehavosti. Pri každom je uvedené, ktoré zistenia z kapitol 3–5 rieši.
+
+### P1 (hneď)
+
+- **Gateway ACL na tuneli:** nasadiť pravidlo `10.172.16.0/24` → infra s politikou default-deny, povoliť len nevyhnutné (napr. 443 k vybraným službám); zapnúť inter-VLAN isolation. → S2-01, S2-08, S2-10, C-01.
+- **Host firewall na `cwwk` (ufw/nft):** etcd a kubelet viazať len na loopback/interné rozhranie; k8s API a NodePorty obmedziť na potrebné zdroje; blokovať `2379/10250/2049/9100` z VPN aj LAN. → S2-02, S2-04, S2-06, S2-07, C-03.
+- **Neautentifikované UI (Prometheus/Alertmanager/Mailpit):** dať za forward-auth alebo len na VPN; stiahnuť z internetu. → S1-01, C-05.
+- **Zúžiť NFS export:** odstrániť VPN podsieť z exportu alebo povoliť len konkrétne hosty; zachovať `root_squash`. → S2-05, C-09.
+
+### P2 (krátkodobo)
+
+- **Admin aplikácie (ArgoCD, pgAdmin, Nexus, Grafana):** presunúť za SSO forward-auth alebo len na VPN; vynútiť MFA. → S1-02.
+- **Keycloak do produkčného režimu:** HTTPS-only, strict hostname, skrytá administrátorská konzola. → S1-03, C-06.
+- **TLS na PostgreSQL:** NodePort `30432` neexponovať do VPN; rotovať superuser heslo. → S2-04, C-04, C-07.
+- **Hardening MAAS/Omada boxu:** oddeliť role, obmedziť mgmt prístup, vynútiť silné poverenia a MFA, udržiavať patch cadence. → S2-03, C-02.
+
+### P3 (strednodobo)
+
+- **Segmentovať VPN klientov:** samostatná politika/VLAN pre VPN, least-privilege client-side `AllowedIPs`, politika rotácie WireGuard kľúčov. → S2-10, C-08.
+- **BMC/IPMI na dedikovanú OOB VLAN** pred zapnutím cloudu; pripraviť ACL pre OpenStack/Ceph. → S2-09.
+- **Patch cadence a CVE monitoring** pre vystavené beta služby (RustFS); nasadiť HSTS a bezpečnostné hlavičky na gateway. → S1-04, S1-05.
+
 ## Príloha A — Autentifikačná matica vystavených služieb
 
 ## Príloha B — Hardening checklist (CIS-style)
