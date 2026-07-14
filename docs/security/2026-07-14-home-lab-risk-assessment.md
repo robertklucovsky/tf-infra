@@ -107,6 +107,26 @@ Autorizovaný peer po pripojení do tunela získava **plnú L3 konektivitu na `1
 
 ## 5. Prierezové zistenia
 
+Nasledujúce zistenia majú štrukturálny charakter — nevznikajú z jedného konkrétneho portu či služby, ale opakovane umocňujú viacero zistení z kapitol 3 a 4 naprieč oboma scenármi. Slúžia ako podklad pre prioritizované odporúčania v kapitole 6.
+
+**C-01 — Plochá sieť napriek 3 VLAN.** Napriek existencii troch samostatných VLAN (`isolation=false`, ACL vypnuté) je sieť fakticky plochá a voľne routovaná. Toto je najväčší štrukturálny problém celého hodnotenia a priamo umocňuje zistenia S2-01, S2-08 a S2-09.
+
+**C-02 — Jeden box koncentruje MAAS + Omada + DNS/DHCP.** Kombinácia provisioningu, sieťovej kontroly a DNS/DHCP na jedinom hostiteľovi (`172.16.1.2`) predstavuje jednobodovú poruchu (SPOF) a zároveň najhodnotnejší cieľ pre útočníka v labe, ako popisuje zistenie S2-03.
+
+**C-03 — Žiadny host firewall na node.** Absencia host firewallu na `cwwk` je príčinou širokej sieťovej expozície control-plane a doplnkových služieb popísaných v zisteniach S2-02, S2-04, S2-06 a S2-07.
+
+**C-04 — PostgreSQL v plaintexte.** Databáza bežiaca bez TLS (zistenie S2-04) vystavuje poverenia aj Terraform state riziku odpočúvania na trase.
+
+**C-05 — Monitoring bez autentifikácie.** Prometheus, Alertmanager a Mailpit sú vystavené bez akejkoľvek autentifikácie (zistenie S1-01), čo umožňuje únik internej topológie, metrík a e-mailovej komunikácie.
+
+**C-06 — Keycloak v dev režime.** Identity provider chrániaci prístup k RustFS beží v móde `start-dev`, ktorý vypína produkčné hardeningové mechanizmy (zistenie S1-03).
+
+**C-07 — Secrets vo vystavenom etcd + TF state v dosiahnuteľnom Postgrese.** Citlivé dáta — secrets uložené v etcd a Terraform state (vrátane superuser poverení) v Postgrese — sú uložené v komponentoch, ktoré sú sieťovo dosiahnuteľné z VPN (zistenia S2-02 a S2-04), čo zvyšuje hodnotu prípadného kompromisu.
+
+**C-08 — VPN = osobné roaming zariadenia, bez per-device segmentácie, bez MFA, bez rotácie kľúčov.** WireGuard peery sú osobné roamingové zariadenia koncových používateľov bez ďalšej segmentácie prístupu, bez vynúteného MFA a bez zdokumentovanej politiky rotácie kľúčov, ako popisuje zistenie S2-10.
+
+**C-09 — NFS export na VPN.** Export `/data` na tunelovú podsieť `10.172.16.0/24` rozširuje dosah na súborový systém na každého autorizovaného (alebo kompromitovaného) VPN klienta, ako popisuje zistenie S2-05.
+
 ## 6. Prioritizované odporúčania
 
 ## Príloha A — Autentifikačná matica vystavených služieb
