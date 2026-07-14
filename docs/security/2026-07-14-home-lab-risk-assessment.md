@@ -172,3 +172,21 @@ Tabuľka zhŕňa všetky hostname vystavené cez in-cluster Cilium Gateway (viď
 Poznámka: konkrétny typ autentifikácie pri standalone aplikáciách (ArgoCD, Grafana, pgAdmin, Nexus, Zot) aj pri Keycloaku samotnom vychádza z konfigurácie v repozitári a je `[predpoklad]` — malo by sa potvrdiť priamym testom pri jednotlivých aplikáciách s vysokým dopadom.
 
 ## Príloha B — Hardening checklist (CIS-style)
+
+Checklist slúži na opakované sledovanie stavu hardeningu v čase. Stav vychádza priamo zo zistení uvedených v predchádzajúcich kapitolách.
+
+| Kontrola | Kategória | Stav (Pass/Fail/NA) | Zistenie |
+|---|---|---|---|
+| Sieťová segmentácia (inter-VLAN isolation) | Sieť/Segmentácia | **Fail** | C-01 |
+| Gateway ACL / VPN least-privilege | VPN | **Fail** | S2-01, S2-10 |
+| Host firewall na node | Host | **Fail** | C-03 |
+| k8s control-plane nevystavený (etcd/kubelet/API) | Kubernetes | **Fail** | S2-02 |
+| NodePorty obmedzené | Sieť/Exposure | **Fail** | S2-04, S2-06 |
+| Šifrovanie DB (Postgres TLS) | Dáta/Šifrovanie | **Fail** | S2-04 |
+| Autentifikácia vystavených UI | Autentifikácia | **Fail** (S1-01), čiastočne pri standalone appkách | S1-01, S1-02 |
+| Keycloak produkčný režim | Identity | **Fail** | S1-03 |
+| MAAS/BMC hardening + OOB sieť | Fyzická infra/BMC | **Fail/čiastočne** | S2-03, S2-09 |
+| NFS export least-privilege | Storage | **Fail** | S2-05 |
+| Správa secrets (etcd/TF state) | Secrets management | **Fail** | C-07 |
+| Monitoring/alerting na bezpečnostné udalosti | Monitoring | **NA/čiastočne** `[predpoklad]` | — |
+| WG kľúče: rotácia + MFA | VPN/Identity | **Fail** | C-08 |
