@@ -5,6 +5,11 @@
 **Status:** Draft for review
 **Author:** Robert Klucovsky (with Claude)
 
+> **Revision (2026-07-14):** Added *Current operational state* — the OpenStack /
+> Ceph / Juju cluster (9 servers, 10G/40G switches) is currently powered off;
+> only `cwwk` + the MAAS/Omada box + switches are live. Scenario 2 now separates
+> current-state from latent (powered-on) blast radius.
+
 ## Goal
 
 Produce a security risk assessment of the home lab as reached through the
@@ -44,9 +49,12 @@ the implementation step that follows.
 - Network segmentation across VLAN 1 / 10 / 20.
 - **MAAS + Omada controller box (`172.16.1.2`)**, managed bare-metal servers,
   and BMC/IPMI — assessed for **reachability, criticality, and blast radius**
-  (full inclusion per operator decision).
+  (full inclusion per operator decision). The 9 managed bare-metal servers are
+  **currently powered off** (see Current operational state); assessed as latent
+  blast radius.
 - OpenStack (VLAN 10) and Ceph (VLAN 20) — assessed for **reachability and
-  blast radius** only (see out-of-scope for their internals).
+  blast radius** only (see out-of-scope for their internals). **Currently
+  powered off / no live hosts** — treated as latent blast radius.
 
 ### Out of scope (noted, not audited in depth)
 
@@ -77,6 +85,25 @@ the implementation step that follows.
 All facts below were verified during this engagement unless marked otherwise.
 Sources: Omada controller read-only API (`172.16.1.2:8043`), read-only SSH to
 `cwwk`, and TCP connect tests from the node.
+
+### Current operational state (2026-07-14)
+
+The lab is currently a **scaled-down** version of a larger private cloud that is
+powered off:
+
+- **Live now:** only `cwwk` (`172.16.1.11`, the k8s node), the combined
+  MAAS + Omada box (`172.16.1.2`), and the Omada-managed switches.
+- **Powered off:** the OpenStack / Ceph / Juju cluster — 9 servers (6× HP
+  ProLiant DL3xx + 3 unbranded), plus a 10 GbE switch and a **40 GbE switch not
+  managed by the Omada controller** (hence absent from this recon).
+- **VLAN 10 (OpenStack, `172.16.2.0/24`) and VLAN 20 (Ceph, `172.16.3.0/24`)
+  therefore have no live hosts right now** — routed and unfiltered by config, but
+  currently empty.
+
+The report distinguishes **current-state** risk (what is live and reachable
+today) from **latent / designed-state** risk (the blast radius that returns when
+the full cloud is powered back on). The flat-network / no-ACL findings apply to
+both; the difference is how many hosts are exposed.
 
 ### Perimeter — TP-Link ER605 (`172.16.1.1`, firmware 2.3.3)
 
@@ -171,8 +198,8 @@ per-app confirmation):
    tunnel grants (full L3 to all subnets), attack paths (plaintext Postgres
    30432; k8s API/kubelet/etcd; NFS `/data` mount; other NodePorts; MAAS/Omada
    box takeover incl. BMC/provisioning and network-control; switch management;
-   lateral movement to OpenStack/Ceph), blast radius on key/device compromise,
-   risk ratings.
+   lateral movement to OpenStack/Ceph **when powered on**), **current vs latent**
+   blast radius on key/device compromise, risk ratings.
 5. **Cross-cutting findings** — no network segmentation despite VLANs; single
    box concentrating MAAS+Omada+DNS/DHCP; plaintext Postgres; no auth on
    monitoring; Keycloak dev mode; no host firewall; secrets in exposed etcd;
@@ -194,9 +221,13 @@ per-app confirmation):
   or exfiltrate data via the exposed HTTP apps.
 - **Scenario 2 (authorized VPN client):** possesses a valid WireGuard peer key.
   Reachable: full L3 to `172.16.1.0/24`, `172.16.2.0/24`, `172.16.3.0/24` on all
-  ports; NFS `/data`. Sub-case **compromised client**: an attacker who obtains a
-  peer key or a peer device — same reach, adversarial intent; blast radius is the
-  whole infrastructure.
+  ports; NFS `/data`. **Today** only `172.16.1.0/24` has live hosts (`cwwk`,
+  MAAS/Omada, switches); the OpenStack/Ceph subnets are routable but currently
+  empty. Sub-case **compromised client**: an attacker who obtains a peer key or a
+  peer device — same reach, adversarial intent. Current blast radius = `cwwk`
+  (incl. k8s control plane, etcd, NFS `/data`, plaintext Postgres) + the
+  MAAS/Omada control box + switches; **latent blast radius = the whole private
+  cloud** once the 9 servers / OpenStack / Ceph are powered back on.
 
 ## Open items / assumptions
 
@@ -206,9 +237,10 @@ per-app confirmation):
 - **BMC/IPMI network:** no dedicated out-of-band VLAN was observed (only VLAN
   1/10/20). The report assumes BMCs are reachable on a routed subnet unless the
   operator confirms otherwise `[assumption]`.
-- **OpenStack/Ceph host inventory** was not enumerated; the report treats their
-  subnets as reachable and unfiltered `[verified: routing/ACL]` but does not list
-  individual hosts.
+- **OpenStack/Ceph host inventory** was not enumerated and is **currently
+  powered off**; the report treats their subnets as routable and unfiltered
+  `[verified: routing/ACL]`, empty today `[verified: operator + no live hosts]`,
+  and a latent blast radius when powered on.
 - **Exact exposed software versions/CVEs** will be gathered during report
   authoring where accessible.
 
