@@ -153,4 +153,22 @@ Odporúčania sú rozdelené do troch časových horizontov podľa naliehavosti.
 
 ## Príloha A — Autentifikačná matica vystavených služieb
 
+Tabuľka zhŕňa všetky hostname vystavené cez in-cluster Cilium Gateway (viď kapitola 2) spolu s ich autentifikačnou pozíciou. Všetky sú vystavené na internete cez TCP 443 (TLS terminovaný v clustri, wildcard `*.klucovsky.com`) `[overené]`.
+
+| Hostname | Backend (ns:port) | Autentifikácia | Na internete? | Poznámka |
+|---|---|---|---|---|
+| `argocd.klucovsky.com` | argocd-server | standalone | áno (443) | vlastný login ArgoCD; viď S1-02 |
+| `db.klucovsky.com` | pgAdmin (cnpg-system) | standalone | áno (443) | správa databázy; vysoký dopad pri prelomení, viď S1-02 |
+| `nexus.klucovsky.com` | nexus | standalone | áno (443) | vlastný login Nexus, viď S1-02 |
+| `alertmanager.klucovsky.com` | alertmanager | žiadna | áno (443) | bez prihlásenia, viď S1-01 |
+| `grafana.klucovsky.com` | grafana | standalone | áno (443) | vlastný login Grafana, viď S1-02 |
+| `prometheus.klucovsky.com` | prometheus | žiadna | áno (443) | bez prihlásenia, viď S1-01 |
+| `registry.klucovsky.com` | zot | standalone | áno (443) | vlastný login Zot, viď S1-02 |
+| `auth.klucovsky.com` | keycloak | vlastné prihlasovanie (IdP + admin konzola) `[predpoklad]` | áno (443) | beží v móde `start-dev`, viď S1-03 |
+| `mail.klucovsky.com` | mailpit | žiadna | áno (443) | bez prihlásenia, viď S1-01 |
+| `s3.klucovsky.com` | rustfs | Keycloak SSO | áno (443) | jediná appka so SSO cez Keycloak |
+| `fatto-aac.klucovsky.com` | redirect → RustFS OIDC flow | Keycloak SSO (cez redirect) | áno (443) | 302 redirect, viď S1-07 |
+
+Poznámka: konkrétny typ autentifikácie pri standalone aplikáciách (ArgoCD, Grafana, pgAdmin, Nexus, Zot) aj pri Keycloaku samotnom vychádza z konfigurácie v repozitári a je `[predpoklad]` — malo by sa potvrdiť priamym testom pri jednotlivých aplikáciách s vysokým dopadom.
+
 ## Príloha B — Hardening checklist (CIS-style)
