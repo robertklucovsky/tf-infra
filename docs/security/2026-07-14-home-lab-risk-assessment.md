@@ -61,7 +61,7 @@ Adresár `/data` je exportovaný na obe podsiete `10.172.16.0/24` (WireGuard tun
 
 ### `172.16.1.2` (kombinovaný box MAAS + Omada)
 
-Jeden box koncentruje MAAS (DNS `53`, API `5240`, HTTPS `5443`, proxy `3128`) aj Omada kontrolér (`8043`), plus SSH `22` `[overené]`. MAAS ovláda bare-metal provisioning (PXE, re-image, commissioning) a typicky aj napájanie cez BMC/IPMI; Omada je sieťová kontrolná rovina (spravuje ER605 a switche). Táto koncentrácia rolí na jednom hostiteľovi je popísaná ako prierezové zistenie `C-02` v kapitole 5.
+Jeden box koncentruje MAAS (DNS `53`, API `5240`, HTTPS `5443`, proxy `3128`) aj Omada kontrolér (`8043`), plus SSH `22` `[overené]`. MAAS ovláda bare-metal provisioning (PXE, re-image, commissioning) a typicky aj napájanie cez BMC/IPMI; Omada je sieťová kontrolná rovina (spravuje ER605 a switche) — samotné pripojenie a konfigurácia BMC/IPMI k týmto konkrétnym serverom neboli v rámci tohto hodnotenia nezávisle overené `[predpoklad]`. Táto koncentrácia rolí na jednom hostiteľovi je popísaná ako prierezové zistenie `C-02` v kapitole 5.
 
 ### Switche
 
@@ -111,7 +111,7 @@ Autorizovaný peer po pripojení do tunela získava **plnú L3 konektivitu na `1
 
 **S2-09 — Stredná teraz / Kritická latentne — Blast radius po zapnutí cloudu.** Popis: po opätovnom zapnutí 9 serverov budú znova bežať OpenStack API, Ceph (mon/OSD/dashboard), Juju controller a **BMC/IPMI**. Útočná cesta: keďže sieť je plochá, tieto komponenty budú z VPN dosiahnuteľné. Dopad: masívny latentný blast radius v porovnaní so súčasným stavom. Závažnosť: **Stredná teraz / Kritická latentne**. Odporúčanie: pred zapnutím cloudu zaviesť segmentáciu a ACL; BMC umiestniť na dedikovanú OOB VLAN. (Sieť, na ktorej sú BMC pripojené, nebola v rámci tohto hodnotenia overená — `[predpoklad]`; dedikovaná OOB VLAN nebola pozorovaná.)
 
-**S2-10 — Stredná — Chýba least-privilege na VPN.** Popis: server-side `/32` pripína len zdrojovú IP klienta, nič neobmedzuje ciele; nie je vynútené MFA (len vlastníctvo kľúča) a rotácia kľúčov nie je zdokumentovaná. Útočná cesta: útočník, ktorý získa WireGuard kľúč (napr. krádežou zariadenia alebo únosom kľúča), sa pripojí do tunela s rovnakým dosahom ako legitímny peer, keďže chýba MFA aj obmedzenie cieľov. Dopad: kompromitovaný kľúč znamená trvalý plný prístup do celej siete. Závažnosť: **Stredná**. Odporúčanie: gateway ACL na tunel (viď S2-01), least-privilege nastavenie client-side `AllowedIPs`, politika pravidelnej rotácie kľúčov, oddelenie prístupov podľa jednotlivých zariadení.
+**S2-10 — Stredná — Chýba least-privilege na VPN.** Popis: server-side `/32` pripína len zdrojovú IP klienta, nič neobmedzuje ciele; WireGuard sám osebe vynucuje len vlastníctvo kľúča bez MFA vrstvy a v rámci tohto hodnotenia nebola pozorovaná žiadna zdokumentovaná politika rotácie kľúčov `[predpoklad: absencia dokumentácie mimo rozsahu tohto hodnotenia nebola nezávisle potvrdená]`. Útočná cesta: útočník, ktorý získa WireGuard kľúč (napr. krádežou zariadenia alebo únosom kľúča), sa pripojí do tunela s rovnakým dosahom ako legitímny peer, keďže chýba MFA aj obmedzenie cieľov. Dopad: kompromitovaný kľúč znamená trvalý plný prístup do celej siete. Závažnosť: **Stredná**. Odporúčanie: gateway ACL na tunel (viď S2-01), least-privilege nastavenie client-side `AllowedIPs`, politika pravidelnej rotácie kľúčov, oddelenie prístupov podľa jednotlivých zariadení.
 
 ## 5. Prierezové zistenia
 
