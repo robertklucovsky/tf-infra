@@ -104,6 +104,11 @@ resource "kubectl_manifest" "cnpg_cluster" {
           max_connections: "200"
           shared_buffers: "256MB"
           log_statement: "ddl"
+        pg_hba:
+          # Reject all non-TLS TCP connections; TLS ones fall through to the
+          # CNPG default host rule. local/replication rules are unaffected.
+          - hostnossl all all 0.0.0.0/0 reject
+          - hostnossl all all ::/0 reject
 
       monitoring:
         enablePodMonitor: true
