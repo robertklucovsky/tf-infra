@@ -91,12 +91,27 @@ reversible port-forward edit.
   `KC_HOSTNAME_STRICT=true`, review `KC_HTTP_ENABLED` (HTTP stays on behind the
   TLS-terminating gateway; health on :9000). Closes S1-03 / C-06. Must be
   verified against the public S3 OIDC login after apply.
-- **A3 — PostgreSQL TLS.** `dev/cnpg.tf`: ensure the CNPG Cluster presents server
-  TLS (CNPG generates a server cert by default); switch the `postgresql` provider
-  (`dev/main.tf`) and any external consumers from `sslmode=disable` →
-  `sslmode=require` (encryption without CA distribution; `verify-full` optional
-  later). NodePort 30432 stays (operator needs it for Terraform) but is now
-  intranet-only. Closes S2-04 / C-04 (plaintext).
+- **A3 — PostgreSQL TLS enforced server-side.** `dev/cnpg.tf`: the CNPG Cluster
+  presents server TLS (CNPG auto-generates a server cert); configure the cluster
+  so the **server refuses plaintext** — `postgresql.parameters.ssl = "on"` and a
+  `postgresql.pg_hba` that requires `hostssl` (no plaintext `host` fallback) for
+  external/TCP connections. Then switch **every consumer** to `sslmode=require`
+  (encryption; no CA distribution needed):
+  - `postgresql` Terraform provider (`dev/main.tf`, `sslmode=disable` → `require`);
+  - Keycloak in-cluster DB connection (`dev/keycloak.tf` / `dev/postgresql.tf`:
+    add `?sslmode=require` to `KC_DB_URL`);
+  - the `pg` state backend (when restored) and the `terraform_data.cnpg_ready`
+    readiness check (`dev/cnpg.tf`);
+  - **tenants** (e.g. `fatto-erp`) — must switch their DB connections to
+    `sslmode=require` in lockstep (see coordination note below).
+  NodePort 30432 stays (operator needs it for Terraform) but is now intranet-only.
+  Closes S2-04 / C-04 (plaintext).
+
+  **Coordination / breakage risk:** once `hostssl` is enforced, any consumer still
+  connecting without TLS is refused. All in-repo consumers are updated in this
+  plan; **tenant repos that use this DB must be updated to `sslmode=require`
+  before (or at) the cutover** or they will fail to connect. `verify-full` (CA
+  verification) is deferred (see Out of scope).
 
 ### B. Network — Omada (agent applies via API, with safeguards)
 
@@ -129,7 +144,9 @@ reversible port-forward edit.
    (state is local/post-teardown). Apply A1 (public gateway) first; verify the
    public gateway serves the 3 hosts (`curl --resolve s3.klucovsky.com:443:172.16.1.12`)
    and returns 404 for a non-public host. Then A2 (Keycloak) and A3 (Postgres
-   TLS), verifying each.
+   TLS), verifying each. **A3 enforcement (`hostssl`) is applied only after all
+   consumers — including tenant repos — are confirmed on `sslmode=require`;**
+   update in-repo consumers and the client side first, then flip `hostssl`.
 2. **C1 (NFS):** low risk; apply and verify a mount from an allowed peer IP.
 3. **B (Omada) last, while the operator is on LAN** (so LAN/SSH access survives
    even if the VPN path breaks), with a prepared revert:
@@ -143,7 +160,9 @@ reversible port-forward edit.
 
 ## Rollback
 
-- **A:** `git revert` + `terraform apply` (state-tracked, reversible).
+- **A:** `git revert` + `terraform apply` (state-tracked, reversible). For A3, if
+  a consumer is locked out, revert the `pg_hba` `hostssl` line back to `host` and
+  re-apply to restore plaintext acceptance while the consumer is fixed.
 - **B1:** repoint the port-forward back to `172.16.1.11`.
 - **B2/B3:** delete the added ACL / disable isolation in Omada.
 - **C1:** restore the prior `/etc/exports` line + `exportfs -r`.
@@ -154,7 +173,9 @@ reversible port-forward edit.
 - Internet reaches only the 3 public hosts + WireGuard; internal apps resolve/
   serve for LAN/VPN clients unchanged.
 - S3 OIDC login works end-to-end with Keycloak in production mode.
-- Postgres connections are TLS (`sslmode=require`); `terraform plan` still works.
+- Postgres **refuses plaintext** (a `sslmode=disable` connection is rejected) and
+  accepts `sslmode=require`; `terraform plan`, Keycloak, and any tenants still
+  connect over TLS.
 - From a real WireGuard peer: 443/22/6443/30432/NFS/DNS work; `2379`/`10250`/
   `9100` are blocked.
 - NFS `/data` mounts only from the three peer /32s (+ LAN); other tunnel IPs
