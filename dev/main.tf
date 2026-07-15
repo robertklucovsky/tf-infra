@@ -39,7 +39,7 @@ terraform {
   # with network access to the cluster's Postgres. Connection string is supplied
   # out-of-band via the PG_CONN_STR env var (contains the superuser password),
   # never committed:
-  #   export PG_CONN_STR="postgres://postgres:<password>@172.16.1.11:30432/postgres?sslmode=disable"
+  #   export PG_CONN_STR="postgres://postgres:<password>@172.16.1.11:30432/postgres?sslmode=require"
   # TEMPORARY: state migrated from the pg backend to a local file for teardown,
   # so `terraform destroy` doesn't depend on the CNPG Postgres it tears down.
   # Restore the pg backend below if this repo is ever re-applied:
@@ -75,7 +75,7 @@ provider "postgresql" {
   port     = var.postgres_port
   username = var.postgres_superuser
   password = var.postgres_superuser_password
-  sslmode  = "disable"
+  sslmode  = "require"
   database = "postgres"
 }
 

@@ -23,7 +23,7 @@ This repo is applied **first** before any tenant repo. Destroyed **last** after 
 ```bash
 cd dev
 source ~/Developer/fatto/tf-variables.sh
-export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=disable"
+export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=require"
 terraform init
 terraform apply
 ```
@@ -40,7 +40,7 @@ password). Supply it out-of-band via the `PG_CONN_STR` env var before any
 `terraform` command:
 
 ```bash
-export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=disable"
+export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=require"
 ```
 
 ### Using from another machine
@@ -50,7 +50,7 @@ git clone git@github.com:robertklucovsky/tf-infra.git
 cd tf-infra/dev
 
 # Secrets are gitignored — provide terraform.tfvars manually (or via TF_VAR_* env vars)
-export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=disable"
+export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=require"
 
 terraform init    # pulls existing state from Postgres
 terraform plan

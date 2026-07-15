@@ -79,7 +79,7 @@ resource "kubernetes_secret" "keycloak_db_credentials" {
   }
 
   data = {
-    "keycloak-url"      = "jdbc:postgresql://${local.pg_rw_host}:${local.pg_port}/keycloak"
+    "keycloak-url"      = "jdbc:postgresql://${local.pg_rw_host}:${local.pg_port}/keycloak?sslmode=require"
     "keycloak-username" = postgresql_role.keycloak.name
     "keycloak-password" = random_password.pg_keycloak.result
   }
