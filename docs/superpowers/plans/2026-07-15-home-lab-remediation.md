@@ -33,6 +33,7 @@
 - Modify: `dev/postgresql.tf` — Keycloak JDBC URL `sslmode=require`.
 - Modify: `README.md` — update the `PG_CONN_STR` example to `sslmode=require`.
 - Live (no repo file): Omada port-forward + ACL + VLAN isolation; `cwwk:/etc/exports.d/` NFS export.
+- Modify (workstream D): `.gitignore` (un-track tfvars); `dev/terraform.tfvars` value rotation (untracked); `README.md` + `.cortex/**` reference updates; whole-repo `dev/`→`tf/` rename; git history rewrite (all commits).
 
 ---
 
@@ -616,9 +617,217 @@ For each of the two network objects, set `isolation=true` (keep all other fields
 
 ---
 
+### Task 10 (D1): Stop tracking `terraform.tfvars`
+
+**Files:**
+- Modify: `.gitignore`
+- Remove from index: `dev/terraform.tfvars` (file stays on disk)
+
+- [ ] **Step 1: Un-track and ignore**
+
+Run:
+```bash
+cd /Users/robert.klucovsky/Developer/private-projects/tf-platform
+git rm --cached dev/terraform.tfvars
+printf '\n# Root tfvars (may contain secrets)\nterraform.tfvars\n' >> .gitignore
+```
+
+- [ ] **Step 2: Verify**
+
+Run:
+```bash
+git ls-files | grep -c 'terraform.tfvars' || true   # expect 0
+git check-ignore dev/terraform.tfvars               # expect it prints the path (now ignored)
+test -f dev/terraform.tfvars && echo "local file intact"
+```
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .gitignore
+git commit -m "chore(security): stop tracking terraform.tfvars (contained secrets)"
+```
+
+---
+
+### Task 11 (D2): Rotate `postgres_superuser_password`
+
+**Files:**
+- Modify (untracked): `dev/terraform.tfvars`
+
+**Interfaces:**
+- Consumes: A3 applied (consumers on `sslmode=require`).
+
+- [ ] **Step 1: Generate a new password and update tfvars**
+
+```bash
+NEWPW=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32)
+# Update the value in dev/terraform.tfvars (do not print NEWPW):
+python3 - "$NEWPW" <<'PY'
+import re,sys
+p="/Users/robert.klucovsky/Developer/private-projects/tf-platform/dev/terraform.tfvars"
+s=open(p).read()
+s=re.sub(r'(?m)^(postgres_superuser_password\s*=\s*).*$', r'\1"'+sys.argv[1]+'"', s)
+open(p,"w").write(s)
+print("updated postgres_superuser_password")
+PY
+```
+
+- [ ] **Step 2: Apply the CNPG secret first (avoid provider auth race), then verify CNPG updated the password**
+
+```bash
+cd /Users/robert.klucovsky/Developer/private-projects/tf-platform/dev
+terraform apply -auto-approve -target=kubernetes_secret.cnpg_superuser 2>&1 | tail -5
+# Wait for CNPG to reconcile the new superuser password:
+export PGPASSWORD="$NEWPW"
+for i in $(seq 1 30); do
+  psql "host=172.16.1.11 port=30432 user=postgres dbname=postgres sslmode=require connect_timeout=4" -tAc 'select 1' 2>/dev/null | grep -q 1 && { echo "new password active"; break; }
+  echo "waiting for CNPG password rotation ($i/30)"; sleep 4
+done
+unset PGPASSWORD
+```
+Expected: "new password active" before the loop ends.
+
+- [ ] **Step 3: Full apply (provider now uses the new password) and verify old password fails**
+
+```bash
+terraform apply -auto-approve 2>&1 | tail -8   # provider ops succeed with new pw
+kubectl -n keycloak rollout status statefulset/keycloak --timeout=120s
+# Old password must now fail (paste the OLD value into OLDPW without committing it):
+```
+Operator/agent check: a connection with the **old** password is rejected; `terraform plan` is clean.
+
+- [ ] **Step 4: No repo commit** (only the untracked tfvars changed). Record that rotation happened.
+
+---
+
+### Task 12 (D3): Rotate `digitalocean_token` (operator + agent)
+
+**Files:**
+- Modify (untracked): `dev/terraform.tfvars`
+
+- [ ] **Step 1 (operator): create a new DigitalOcean API token**
+
+Operator creates a new **read/write** DO API token in the DigitalOcean console (Account → API → Tokens) scoped for DNS. Provide it to the agent out-of-band (or paste when prompted). **Do not** revoke the old one yet.
+
+- [ ] **Step 2: Update tfvars and apply**
+
+```bash
+python3 - <<'PY'
+import re
+p="/Users/robert.klucovsky/Developer/private-projects/tf-platform/dev/terraform.tfvars"
+newtok=open('/dev/stdin').readline().strip()
+s=open(p).read()
+s=re.sub(r'(?m)^(digitalocean_token\s*=\s*).*$', r'\1"'+newtok+'"', s)
+open(p,"w").write(s); print("updated digitalocean_token")
+PY
+cd /Users/robert.klucovsky/Developer/private-projects/tf-platform/dev
+terraform apply -auto-approve 2>&1 | tail -8   # updates the digitalocean provider + cert-manager DO secret
+```
+
+- [ ] **Step 3: Verify cert-manager DNS-01 still works with the new token**
+
+```bash
+# Force a DNS-01 challenge via a short-lived test Certificate, or confirm existing certs stay Ready:
+kubectl get certificate -A
+kubectl get clusterissuer -o wide
+# Confirm the DO-token secret cert-manager uses was updated (name from certificates.tf), and no challenge is stuck:
+kubectl get challenges.acme.cert-manager.io -A 2>/dev/null || echo "no pending challenges (ok)"
+```
+Expected: certificates `Ready=True`; no failed challenges. If a renewal is due, it should complete with the new token.
+
+- [ ] **Step 4 (operator): revoke the old DO token** in the DigitalOcean console once renewals are confirmed working.
+
+- [ ] **Step 5: No repo commit** (only untracked tfvars changed). Record rotation.
+
+---
+
+### Task 13 (D4): Rename `dev/` → `tf/`
+
+**Files:** repo-wide path change.
+
+- [ ] **Step 1: Ensure a clean tree, then move the folder (preserves tracked + gitignored files)**
+
+```bash
+cd /Users/robert.klucovsky/Developer/private-projects/tf-platform
+git status --short   # expect clean (all prior tasks committed)
+mv dev tf            # plain move carries state/secrets/.terraform too
+git add -A           # git records renames; gitignored files (state, *.auto.tfvars, terraform.tfvars) are not added
+```
+
+- [ ] **Step 2: Update references in live docs**
+
+```bash
+# README + cortex knowledge base: dev/ -> tf/ , 'cd dev' -> 'cd tf'
+grep -rlE 'cd dev\b|dev/|tf-infra/dev' README.md .cortex/ | while read f; do
+  sed -i '' -E 's#tf-infra/dev#tf-infra/tf#g; s#cd dev\b#cd tf#g; s#\bdev/#tf/#g; s#`dev`#`tf`#g' "$f"
+done
+# Leave historical plan docs (docs/superpowers/plans/2026-06-28-*) as point-in-time record.
+```
+
+- [ ] **Step 3: Verify Terraform still works from `tf/` with no resource changes**
+
+```bash
+test ! -d dev && echo "dev/ gone"
+cd tf && terraform plan -no-color 2>&1 | tail -5    # expect "No changes"
+cd .. && git grep -nE 'cd dev\b|tf-platform/dev|`dev`' -- ':!docs/superpowers/plans/2026-06-28-*' ':!docs/superpowers/**2026-07-15**' || echo "no stray dev/ refs in live docs"
+```
+Expected: `dev/` gone; `terraform plan` in `tf/` shows no changes; no stray references (except historical/this-plan docs).
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add -A
+git commit -m "chore: rename dev/ -> tf/ (this is the prod platform, not a dev env)"
+```
+
+---
+
+### Task 14 (D5): Rewrite history to purge `terraform.tfvars`, then force-push
+
+**Preconditions:** all other tasks committed; **explicit operator go-ahead** (this rewrites shared history and force-pushes).
+
+- [ ] **Step 1: Confirm tooling and make a safety backup**
+
+```bash
+cd /Users/robert.klucovsky/Developer/private-projects/tf-platform
+git filter-repo --version 2>/dev/null || echo "INSTALL: brew install git-filter-repo (or pip install git-filter-repo)"
+git branch backup/pre-history-rewrite    # local restore point
+git bundle create /tmp/tf-platform-prerewrite.bundle --all   # full offline backup
+```
+
+- [ ] **Step 2: Purge the secret file from all history**
+
+```bash
+git filter-repo --invert-paths --path dev/terraform.tfvars --path tf/terraform.tfvars --force
+```
+(`git filter-repo` drops the `origin` remote by design.)
+
+- [ ] **Step 3: Verify the file is gone from history**
+
+```bash
+git log --all --oneline -- dev/terraform.tfvars tf/terraform.tfvars | head   # expect EMPTY
+```
+Expected: no output (file absent from all history).
+
+- [ ] **Step 4: Re-add origin and force-push (operator go-ahead required)**
+
+```bash
+git remote add origin git@github.com:robertklucovsky/tf-infra.git
+git push --force-with-lease origin main
+# Push any other refs that were rewritten, if applicable.
+```
+Expected: force-push succeeds. Note: the local `backup/pre-history-rewrite` branch is NOT pushed; keep it until the rewrite is confirmed good, then delete.
+
+- [ ] **Step 5: No further commit.** Record completion; rotate reminder: the leaked values are already invalid (D2/D3).
+
+---
+
 ## Self-Review (plan vs spec)
 
-- **Spec coverage:** A1 public gateway (Task 2), A2 Keycloak prod (Task 3), A3 Postgres TLS enforced — staged clients (Task 4) + hostssl enforce (Task 5), B1 router repoint (Task 7), B2 VPN ACL (Task 8), B3 inter-VLAN isolation (Task 9), C1 NFS narrow (Task 6). Baseline drift gate (Task 1). All spec workstreams mapped. ✓
+- **Spec coverage:** A1 public gateway (Task 2), A2 Keycloak prod (Task 3), A3 Postgres TLS enforced — staged clients (Task 4) + hostssl enforce (Task 5), B1 router repoint (Task 7), B2 VPN ACL (Task 8), B3 inter-VLAN isolation (Task 9), C1 NFS narrow (Task 6), D1 un-track tfvars (Task 10), D2 rotate Postgres pw (Task 11), D3 rotate DO token (Task 12), D4 rename dev→tf (Task 13), D5 history rewrite + force-push (Task 14). Baseline drift gate (Task 1). All spec workstreams mapped. ✓
+- **Ordering:** D runs last (Tasks 10–14) so the rename doesn't re-path Tasks 1–9 and the history rewrite runs once over the final tree; D5 gated on explicit operator go-ahead. ✓
+- **Irreversibility flagged:** D2/D3 rotations and D5 history rewrite are not plain-revertible; D5 keeps a `backup/pre-history-rewrite` branch + offline bundle. ✓
 - **Apply order** matches the spec (A → C → B, LAN-first, Omada last). ✓
 - **Rollback** present for every risky task (A: git revert / hostssl revert; B: restore captured JSON; C: restore exports). ✓
 - **Verification** is concrete per task (curl --resolve, psql sslmode, TCP reachability, OIDC). ✓
