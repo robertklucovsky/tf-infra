@@ -85,7 +85,10 @@ resource "kubernetes_stateful_set" "keycloak" {
           name  = "keycloak"
           image = "quay.io/keycloak/keycloak:26.6.4"
 
-          args = ["start-dev", "--health-enabled=true"]
+          # Production mode: `start` builds with KC_DB=postgres on boot and
+          # enforces KC_HOSTNAME. TLS is terminated at the gateway, so HTTP stays
+          # enabled behind the proxy (KC_HTTP_ENABLED + KC_PROXY_HEADERS below).
+          args = ["start", "--health-enabled=true"]
 
           env {
             name  = "KEYCLOAK_ADMIN"
