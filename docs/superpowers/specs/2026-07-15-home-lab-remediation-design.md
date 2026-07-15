@@ -35,6 +35,14 @@ from the internet; every other service is intranet-only (LAN/VPN).**
   The operator verifies VPN from a real peer after the network changes.
 - **Basic-auth for Prometheus/Alertmanager/Mailpit is dropped** — once those apps
   are internet-unreachable (intranet-only), per-app auth is not required for P1.
+- **Repo hygiene:** rename `dev/` → `tf/` (the current name reads like a dev
+  environment; this is the prod platform). Terraform stays isolated in its own
+  folder, just not named `dev`.
+- **Leaked-secret remediation:** `dev/terraform.tfvars` is **tracked in git** (and
+  pushed to GitHub) and contains `postgres_superuser_password` +
+  `digitalocean_token` `[verified: git ls-files]`. Remediate fully: stop tracking
+  + `.gitignore` it, **rotate both secrets**, and **rewrite git history** to purge
+  it, then force-push. Old values are treated as compromised.
 
 ## Verified enabling facts (2026-07-15)
 
@@ -138,6 +146,33 @@ reversible port-forward edit.
   `root_squash,all_squash`. Partially closes S2-05.
 - Host firewall: explicitly **not** implemented (see Decisions).
 
+### D. Repo hygiene & leaked-secret remediation (agent, with operator actions)
+
+Done **last**, after all other workstreams are committed, so the folder rename
+does not re-path earlier steps and the history rewrite happens once over a final
+tree.
+
+- **D1 — Stop tracking `terraform.tfvars`.** `git rm --cached dev/terraform.tfvars`
+  and add `terraform.tfvars` to `.gitignore` (keeps the local file; removes it
+  from future commits). Fixes the README's false "gitignored" claim.
+- **D2 — Rotate `postgres_superuser_password`.** New value in `terraform.tfvars`;
+  `terraform apply` so CNPG reconciles the superuser Secret and updates the
+  password; verify every consumer (provider, Keycloak, readiness) reconnects.
+- **D3 — Rotate `digitalocean_token`.** **Operator** creates a new token in the
+  DigitalOcean console; agent updates `terraform.tfvars` and applies (cert-manager
+  DNS-01 + `digitalocean` provider pick it up); verify a cert-manager DNS-01
+  challenge/renewal still works; **operator revokes the old token**.
+- **D4 — Rename `dev/` → `tf/`.** `git mv` tracked files + `mv` the gitignored
+  ones (state, `secrets.auto.tfvars`, `.terraform/`); update references in
+  `README.md`, `.cortex/**`, and this repo's plan/spec. `.gitignore` patterns are
+  path-agnostic, so nothing is un-ignored. Historical plan docs
+  (`docs/superpowers/plans/2026-06-28-*`) are left as point-in-time record.
+- **D5 — Rewrite history + force-push.** After every other commit, purge
+  `dev/terraform.tfvars` (and `tf/terraform.tfvars`) from all history with
+  `git filter-repo`, then `git push --force-with-lease`. **Requires explicit
+  operator go-ahead** (rewrites shared history). Rotation (D2/D3) already makes
+  the leaked values useless; this removes them from history as defense-in-depth.
+
 ## Apply order & safety
 
 1. **A (Terraform):** `terraform init` + `plan`; review the plan for drift
@@ -155,6 +190,11 @@ reversible port-forward edit.
      apps (443), SSH, kubectl, Terraform, and NFS still work, and that
      etcd/kubelet are now blocked.
    - B3 inter-VLAN isolation.
+4. **D (repo hygiene & secrets), last of all:** D1 (un-track) → D2 (rotate
+   Postgres pw) → D3 (rotate DO token, with operator) → D4 (rename `dev`→`tf`) →
+   D5 (history rewrite + force-push, on explicit operator go-ahead). Doing this
+   last means the rename does not re-path earlier tasks and the history rewrite
+   runs once over the final commit set.
 - An out-of-band path (LAN + SSH to `cwwk`) is kept open throughout. Every Omada
   change is captured before/after so it can be reverted.
 
@@ -166,6 +206,11 @@ reversible port-forward edit.
 - **B1:** repoint the port-forward back to `172.16.1.11`.
 - **B2/B3:** delete the added ACL / disable isolation in Omada.
 - **C1:** restore the prior `/etc/exports` line + `exportfs -r`.
+- **D1/D4:** `git revert` (un-track / rename are ordinary commits). **D2/D3
+  (rotation) are not reversible** — the old secret is invalidated by design;
+  "rollback" means rolling forward to a known-good new value. **D5 (history
+  rewrite) is done only after a full backup ref/clone and explicit go-ahead;** a
+  pre-rewrite backup branch is kept so the old history can be restored locally.
 
 ## Verification (success criteria)
 
@@ -181,6 +226,13 @@ reversible port-forward edit.
 - NFS `/data` mounts only from the three peer /32s (+ LAN); other tunnel IPs
   cannot mount.
 - No loss of LAN/SSH access at any point.
+- `git ls-files` no longer lists `terraform.tfvars`; `.gitignore` covers it.
+- Rotated Postgres password works for all consumers; the **old** password is
+  rejected. A cert-manager DNS-01 renewal succeeds with the new DO token; the old
+  token is revoked in the DigitalOcean console.
+- Repo has no `dev/` folder; `terraform` runs from `tf/`; README/`.cortex`
+  reference `tf/`. `git log -p -- '**/terraform.tfvars'` after D5 shows the file
+  absent from history; `git push --force-with-lease` succeeded.
 
 ## Out of scope / deferred
 
