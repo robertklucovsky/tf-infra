@@ -21,3 +21,6 @@ tfplan
 # OS
 .DS_Store
 Thumbs.db
+
+# Root tfvars (contains secrets)
+terraform.tfvars
