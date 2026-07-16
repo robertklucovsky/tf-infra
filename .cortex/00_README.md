@@ -8,7 +8,7 @@
 ## TL;DR projektu
 
 Terraform konfigurácia pre **zdieľanú Kubernetes platformu** (Canonical K8s), ktorú
-konzumujú tenant-i (FATTO ERP, GitLab plánovaný). Jeden root modul v `dev/`. Platforma
+konzumujú tenant-i (FATTO ERP, GitLab plánovaný). Jeden root modul v `tf/`. Platforma
 poskytuje cluster bootstrap (CNPG PostgreSQL, cert-manager, Cilium Gateway API, ArgoCD)
 a zdieľané backing services (MinIO, Keycloak, Nexus, Zot, Redis, Mailpit, pgAdmin) +
 observability stack (Prometheus, Grafana, Tempo, Loki, Promtail) + ARC (GitHub Actions
@@ -32,7 +32,7 @@ keycloak-admin Secret publishing. Detail → `wings/current-state/_index.md`.
 
 - [`wings/current-state/`](wings/current-state/_index.md) — kde sme teraz, aktívna práca, otvorené otázky
 - [`wings/architectural-essence/`](wings/architectural-essence/_index.md) — apply order, backend, provider topology, cluster layout
-- [`wings/platform-services/`](wings/platform-services/_index.md) — katalóg zdieľaných služieb + source pointery do `dev/*.tf`
+- [`wings/platform-services/`](wings/platform-services/_index.md) — katalóg zdieľaných služieb + source pointery do `tf/*.tf`
 - [`wings/tenant-integration/`](wings/tenant-integration/_index.md) — ako tenant-i konzumujú platformu (OIDC kontrakt, platform-vs-tenant ownership)
 - [`wings/decisions-with-why/`](wings/decisions-with-why/_index.md) — infra rozhodnutia + prečo
 - [`wings/risks-and-watchouts/`](wings/risks-and-watchouts/_index.md) — gotchas, incidents, watchouts
@@ -42,8 +42,8 @@ keycloak-admin Secret publishing. Detail → `wings/current-state/_index.md`.
 
 ## Vzťah k project storage
 
-Tento cortex žije **v repe** vedľa Terraform kódu (`dev/*.tf`). Drží esenciu + pointery,
-NIE kópie. Source pointery v loci vedú späť do `dev/<file>.tf` alebo `docs/superpowers/`.
+Tento cortex žije **v repe** vedľa Terraform kódu (`tf/*.tf`). Drží esenciu + pointery,
+NIE kópie. Source pointery v loci vedú späť do `tf/<file>.tf` alebo `docs/superpowers/`.
 
 ## Trojstupňový pamäťový model
 

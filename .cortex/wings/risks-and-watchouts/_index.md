@@ -11,13 +11,13 @@ updated: 2026-06-28 21:03 CEST
 ## Watchouts (init seed)
 
 - **Destroy order:** platformu ničíš AŽ PO všetkých tenantoch. Inak ostanú dangling závislosti.
-- **Backend stav:** pred apply/destroy over, či je `dev/main.tf` na `pg` alebo `local`
+- **Backend stav:** pred apply/destroy over, či je `tf/main.tf` na `pg` alebo `local`
   backende — momentálne `local` (teardown). Zlý backend = práca proti nesprávnemu state.
 - **`PG_CONN_STR` musí byť exportnutý** pred každým `terraform` príkazom keď je pg backend aktívny.
 - **MinIO env vs API lock:** ak by platforma niekedy nastavila `MINIO_IDENTITY_OPENID_*` env,
   tenant OIDC registrácia cez API prestane fungovať (env-set kľúče sú locknuté). NEnastavovať.
 - **Nexus plan-time timeout:** pomalý LAN/API refresh → "context deadline exceeded";
-  riešené `timeout=60` v nexus provideri (`dev/main.tf`).
+  riešené `timeout=60` v nexus provideri (`tf/main.tf`).
 - **Secrets sú gitignored:** `terraform.tfvars`, `secrets.auto.tfvars`, `terraform.tfstate*`.
   Na novom stroji ich treba dodať manuálne (alebo cez `TF_VAR_*`).
 - **MinIO provider endpoint:** mieri na S3 API NodePort `30900` (`minio_ssl=false`),
@@ -27,4 +27,4 @@ updated: 2026-06-28 21:03 CEST
 
 _(Seed z init.)_
 
-Source pointery: `README.md`, `dev/main.tf`, git log (fix/revert commity).
+Source pointery: `README.md`, `tf/main.tf`, git log (fix/revert commity).

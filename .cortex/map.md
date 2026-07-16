@@ -24,7 +24,7 @@ wings:
     loci_count: 0
   - id: platform-services
     path: wings/platform-services/
-    purpose: "Katalóg zdieľaných služieb (CNPG, MinIO, Keycloak, Nexus, Zot, observability, ArgoCD, ARC…) + pointery do dev/*.tf."
+    purpose: "Katalóg zdieľaných služieb (CNPG, MinIO, Keycloak, Nexus, Zot, observability, ArgoCD, ARC…) + pointery do tf/*.tf."
     loci_count: 0
   - id: tenant-integration
     path: wings/tenant-integration/

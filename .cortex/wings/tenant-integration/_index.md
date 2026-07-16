@@ -39,4 +39,4 @@ _(Seed z init.)_
 
 Source pointery: `README.md` (MinIO OIDC sekcia + HCL príklad),
 `docs/superpowers/specs/2026-06-28-minio-keycloak-oidc-design.md`,
-`docs/superpowers/plans/2026-06-28-minio-keycloak-oidc.md`, `dev/keycloak.tf`, `dev/minio.tf`.
+`docs/superpowers/plans/2026-06-28-minio-keycloak-oidc.md`, `tf/keycloak.tf`, `tf/minio.tf`.

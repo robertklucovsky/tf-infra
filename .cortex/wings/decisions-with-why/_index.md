@@ -28,4 +28,4 @@ updated: 2026-06-28 21:03 CEST
 
 _(Seed z init — ADR-style loci s plným kontextom sa pridajú podľa potreby.)_
 
-Source pointery: `dev/main.tf`, `dev/nexus.tf`, `dev/minio.tf`, `dev/sonarqube.tf`, `README.md`, git log.
+Source pointery: `tf/main.tf`, `tf/nexus.tf`, `tf/minio.tf`, `tf/sonarqube.tf`, `README.md`, git log.

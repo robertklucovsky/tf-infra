@@ -12,7 +12,7 @@ updated: 2026-06-28 21:03 CEST
 
 - **Apply:**
   ```bash
-  cd dev
+  cd tf
   source ~/Developer/fatto/tf-variables.sh
   export PG_CONN_STR="postgres://postgres:<password>@172.16.1.11:30432/postgres?sslmode=disable"
   terraform init && terraform apply
@@ -26,4 +26,4 @@ updated: 2026-06-28 21:03 CEST
 
 _(Seed z init.)_
 
-Source pointery: `README.md`, `dev/variables.tf`.
+Source pointery: `README.md`, `tf/variables.tf`.

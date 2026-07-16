@@ -21,7 +21,7 @@ Terraform configuration for the shared Kubernetes platform that tenants (FATTO, 
 This repo is applied **first** before any tenant repo. Destroyed **last** after all tenant repos.
 
 ```bash
-cd dev
+cd tf
 source ~/Developer/fatto/tf-variables.sh
 export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=require"
 terraform init
@@ -47,7 +47,7 @@ export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/po
 
 ```bash
 git clone git@github.com:robertklucovsky/tf-infra.git
-cd tf-infra/dev
+cd tf-infra/tf
 
 # Secrets are gitignored — provide terraform.tfvars manually (or via TF_VAR_* env vars)
 export PG_CONN_STR="postgres://postgres:<postgres_password>@172.16.1.11:30432/postgres?sslmode=require"
@@ -66,7 +66,7 @@ rotate it in both places.
 ## Tenants
 
 - FATTO ERP — `/Users/robert.klucovsky/Developer/fatto/fatto-erp/tf-infra/`
-- GitLab (planned) — to be added as another `.tf` file in `dev/`
+- GitLab (planned) — to be added as another `.tf` file in `tf/`
 
 ### MinIO OIDC (Keycloak) per project
 

@@ -6,13 +6,13 @@ updated: 2026-06-28 21:03 CEST
 
 # Architectural Essence — hlavné osi platformy
 
-> Vivid anchor: jeden Terraform root modul (`dev/`) bootstrapuje celý zdieľaný K8s
+> Vivid anchor: jeden Terraform root modul (`tf/`) bootstrapuje celý zdieľaný K8s
 > platform layer. Aplikuje sa **prvý**, ničí sa **posledný**. Tenant-i si na ňom stavajú.
 
 ## Kľúčové osi (init seed)
 
-- **Single root module:** všetok platform IaC žije v `dev/` — žiadne `.tf` na roote repa.
-  Jeden `terraform apply` z `dev/`.
+- **Single root module:** všetok platform IaC žije v `tf/` — žiadne `.tf` na roote repa.
+  Jeden `terraform apply` z `tf/`.
 - **Apply/destroy order:** platforma sa apply-uje PRED akýmkoľvek tenant repom a destroy-uje
   AŽ PO všetkých tenantoch (poskytuje cluster-wide závislosti).
 - **State backend:** normálne `pg` backend na zdieľanom CNPG Postgrese (schema
@@ -30,4 +30,4 @@ updated: 2026-06-28 21:03 CEST
 
 _(Seed z init — detailné loci sa pridajú pri konsolidácii.)_
 
-Source pointery: `dev/main.tf`, `dev/variables.tf`, `dev/gateway-platform.tf`, `dev/certificates.tf`, `README.md`.
+Source pointery: `tf/main.tf`, `tf/variables.tf`, `tf/gateway-platform.tf`, `tf/certificates.tf`, `README.md`.

@@ -24,7 +24,7 @@ Pre resolving source pointerov v loci frontmatter.
 storage_bases:
   repo:
     base: "/Users/robert.klucovsky/Developer/tf-platform"
-    note: "Terraform root modul v dev/, docs v docs/superpowers/"
+    note: "Terraform root modul v tf/, docs v docs/superpowers/"
   github:
     base: "https://github.com/robertklucovsky/tf-infra"
 ```

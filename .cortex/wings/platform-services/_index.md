@@ -6,11 +6,11 @@ updated: 2026-06-28 21:03 CEST
 
 # Platform Services — katalóg zdieľaných služieb
 
-> Vivid anchor: každá služba = jeden `.tf` súbor v `dev/`. Toto je mapa "ktorá služba, ktorý súbor".
+> Vivid anchor: každá služba = jeden `.tf` súbor v `tf/`. Toto je mapa "ktorá služba, ktorý súbor".
 
 ## Služby a ich source (init seed)
 
-| Služba | `dev/` súbor | Účel |
+| Služba | `tf/` súbor | Účel |
 |---|---|---|
 | CNPG PostgreSQL | `cnpg.tf`, `postgresql.tf` | Zdieľaná DB + operator; hostí aj TF state (pg backend) |
 | cert-manager | `certificates.tf` | TLS certy (Let's Encrypt, DO DNS-01) |
@@ -33,4 +33,4 @@ updated: 2026-06-28 21:03 CEST
 
 _(Seed z init — per-service essence loci sa pridajú podľa potreby.)_
 
-Source pointery: `dev/*.tf`.
+Source pointery: `tf/*.tf`.
