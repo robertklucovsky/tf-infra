@@ -4,13 +4,13 @@
 cortex:
   name: tf-platform
   project_type: codebase        # IaC / platform-engineering
-  version: 0.1
+  version: 0.2
   spec: 1.0
   initialized: 2026-06-28
-  last_consolidation: 2026-06-28
+  last_consolidation: 2026-07-17
   project_storage:
     type: local
-    base: "/Users/robert.klucovsky/Developer/tf-platform"
+    base: "/Users/robert.klucovsky/Developer/private-projects/tf-platform"
     repo: "github.com/robertklucovsky/tf-infra"
 
 wings:
@@ -53,8 +53,8 @@ wings:
 
 working_memory:
   path: working-memory/
-  status: empty
-  note: "Sem AI píše počas session (working-memory/robert-klucovsky/<date>.md)"
+  status: active
+  latest: "working-memory/robert-klucovsky/2026-07-16.md (security remediation + DGX segregation)"
 
 journeys:
   status: not_yet_defined
