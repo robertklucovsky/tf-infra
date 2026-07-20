@@ -92,9 +92,9 @@ variable "cnpg_operator_version" {
 }
 
 variable "cnpg_image" {
-  description = "CNPG operand image — custom build with pgvector + Apache AGE (tag must keep the 17 prefix; never latest)"
+  description = "CNPG operand image — custom build with pgvector + Apache AGE + czech/slovak fulltext dictionaries (tag must keep the 17 prefix; never latest)"
   type        = string
-  default     = "ghcr.io/robertklucovsky/cnpg-postgresql:17-bookworm-ext.1"
+  default     = "ghcr.io/robertklucovsky/cnpg-postgresql:17-bookworm-ext.3"
 }
 
 variable "cnpg_instances" {
