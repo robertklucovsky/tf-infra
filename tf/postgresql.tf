@@ -144,3 +144,72 @@ resource "postgresql_extension" "pg_stat_statements" {
 
   depends_on = [terraform_data.cnpg_preload_ready]
 }
+
+# -----------------------------------------------------------------------------
+# CZECH/SLOVAK FULL-TEXT SEARCH DICTIONARIES
+# Dictionary *files* (hunspell-cs/hunspell-sk, baked into the CNPG image at
+# /usr/share/postgresql/17/tsearch_data/{czech,slovak}.{affix,dict}) are
+# available image-wide. Creating the TEXT SEARCH DICTIONARY/CONFIGURATION
+# objects and GIN indexes is left to DB owners in their own databases —
+# same pattern as vector and age above.
+#
+# This gate proves the files loaded correctly after an image rollout by
+# creating and immediately dropping throwaway dictionary objects; it leaves
+# no persistent SQL objects behind.
+# -----------------------------------------------------------------------------
+
+resource "terraform_data" "cnpg_dict_ready" {
+  depends_on = [terraform_data.cnpg_ready, kubectl_manifest.cnpg_cluster]
+
+  # Re-run when the operand image changes (a rollout that may add/replace
+  # the czech/slovak dictionary files).
+  triggers_replace = [var.cnpg_image]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      KCFG="${var.kubeconfig_path}"
+      case "$KCFG" in
+        "~/"*) KCFG="$HOME/$${KCFG#\~/}" ;;
+        "~")   KCFG="$HOME" ;;
+      esac
+      KC="--kubeconfig $KCFG --context ${var.kubeconfig_context}"
+      echo "Waiting for czech/slovak tsearch_data dictionaries to be usable..."
+      for i in $(seq 1 60); do
+        POD=$(kubectl $KC get pods -n cnpg-system \
+          -l cnpg.io/cluster=shared-db,role=primary \
+          -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+        if [ -n "$POD" ]; then
+          if kubectl $KC exec -n cnpg-system "$POD" -c postgres -i -- \
+            psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/tmp/cnpg_dict_check.out 2>&1
+DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_czech;
+DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_slovak;
+CREATE TEXT SEARCH DICTIONARY tmp_check_czech (template = ispell, dictfile = czech, afffile = czech);
+CREATE TEXT SEARCH DICTIONARY tmp_check_slovak (template = ispell, dictfile = slovak, afffile = slovak);
+DO $$
+BEGIN
+  IF ts_lexize('tmp_check_czech', 'domy') IS NULL THEN
+    RAISE EXCEPTION 'czech dictionary failed to lexize test word';
+  END IF;
+  IF ts_lexize('tmp_check_slovak', 'domy') IS NULL THEN
+    RAISE EXCEPTION 'slovak dictionary failed to lexize test word';
+  END IF;
+END
+$$;
+DROP TEXT SEARCH DICTIONARY tmp_check_czech;
+DROP TEXT SEARCH DICTIONARY tmp_check_slovak;
+SQL
+          then
+            echo "czech/slovak dictionaries OK"
+            exit 0
+          fi
+        fi
+        echo "Attempt $i/60 — not ready (see /tmp/cnpg_dict_check.out), waiting 5s..."
+        sleep 5
+      done
+      echo "ERROR: czech/slovak dictionaries not usable after 300s"
+      cat /tmp/cnpg_dict_check.out 2>/dev/null || true
+      exit 1
+    EOT
+  }
+}
