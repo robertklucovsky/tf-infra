@@ -23,7 +23,8 @@ FROM ${BASE}
 USER root
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends postgresql-17-pgvector; \
+    apt-get install -y --no-install-recommends \
+      postgresql-17-pgvector hunspell-cs hunspell-sk; \
     rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/lib/postgresql/17/lib/age.so \
                     /usr/lib/postgresql/17/lib/age.so
@@ -31,5 +32,15 @@ COPY --from=builder /usr/share/postgresql/17/extension/age.control \
                     /usr/share/postgresql/17/extension/age.control
 COPY --from=builder /usr/share/postgresql/17/extension/age--*.sql \
                     /usr/share/postgresql/17/extension/
+# Czech/Slovak full-text search: Postgres's ispell dictionary template reads
+# Hunspell-format affix files directly, so no conversion — just place them
+# under tsearch_data with the .affix/.dict extensions it expects. Creating
+# the actual TEXT SEARCH DICTIONARY/CONFIGURATION objects is left to DB
+# owners, same as vector and age (see tf/postgresql.tf).
+RUN set -eux; \
+    cp /usr/share/hunspell/cs_CZ.aff /usr/share/postgresql/17/tsearch_data/czech.affix; \
+    cp /usr/share/hunspell/cs_CZ.dic /usr/share/postgresql/17/tsearch_data/czech.dict; \
+    cp /usr/share/hunspell/sk_SK.aff /usr/share/postgresql/17/tsearch_data/slovak.affix; \
+    cp /usr/share/hunspell/sk_SK.dic /usr/share/postgresql/17/tsearch_data/slovak.dict
 # Restore the non-root operand user used by the base image.
 USER 26
