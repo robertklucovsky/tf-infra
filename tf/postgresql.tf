@@ -207,6 +207,14 @@ SQL
         echo "Attempt $i/60 — not ready (see /tmp/cnpg_dict_check.out), waiting 5s..."
         sleep 5
       done
+      echo "Attempting best-effort cleanup of throwaway dictionaries..."
+      if [ -n "$POD" ]; then
+        kubectl $KC exec -n cnpg-system "$POD" -c postgres -i -- \
+          psql -U postgres <<'CLEANUP' >/tmp/cnpg_dict_cleanup.out 2>&1 || true
+DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_czech;
+DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_slovak;
+CLEANUP
+      fi
       echo "ERROR: czech/slovak dictionaries not usable after 300s"
       cat /tmp/cnpg_dict_check.out 2>/dev/null || true
       exit 1
