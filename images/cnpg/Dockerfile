@@ -1,4 +1,5 @@
-# Custom CloudNativePG operand image: stock PG17 + pgvector + Apache AGE.
+# Custom CloudNativePG operand image: stock PG17 + pgvector + Apache AGE +
+# czech/slovak full-text search dictionaries.
 # Keep the "17" tag prefix when publishing — the CNPG operator parses the
 # PG major version from the image tag.
 ARG BASE=ghcr.io/cloudnative-pg/postgresql:17-bookworm

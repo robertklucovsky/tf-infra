@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Image tag (must start with 17, never latest)'
+        description: 'Image tag (must start with 17, never latest) — no default, always specify explicitly'
         required: true
-        default: '17-bookworm-ext.1'
 
 env:
   IMAGE: ghcr.io/robertklucovsky/cnpg-postgresql
@@ -34,6 +33,10 @@ jobs:
           esac
           [ "$TAG" = "latest" ] && { echo "tag must not be latest"; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          # Make the built commit visible in the log — this build reflects
+          # whatever is on the dispatched ref, which silently diverges from a
+          # local checkout if commits weren't pushed before dispatching.
+          echo "Building tag $TAG from commit ${GITHUB_SHA}"
 
       - uses: docker/setup-buildx-action@v3
 

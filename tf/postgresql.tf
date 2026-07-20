@@ -168,6 +168,9 @@ resource "terraform_data" "cnpg_dict_ready" {
   provisioner "local-exec" {
     command = <<-EOT
       set -e
+      # Expand a leading ~ — /bin/sh does not perform tilde expansion on the
+      # value of a quoted variable, so kubectl would otherwise receive a literal
+      # "~/.kube/config" and fail ("stat ~/.kube/config: no such file").
       KCFG="${var.kubeconfig_path}"
       case "$KCFG" in
         "~/"*) KCFG="$HOME/$${KCFG#\~/}" ;;
@@ -186,6 +189,8 @@ DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_czech;
 DROP TEXT SEARCH DICTIONARY IF EXISTS tmp_check_slovak;
 CREATE TEXT SEARCH DICTIONARY tmp_check_czech (template = ispell, dictfile = czech, afffile = czech);
 CREATE TEXT SEARCH DICTIONARY tmp_check_slovak (template = ispell, dictfile = slovak, afffile = slovak);
+-- 'domy' (houses) is a common plural in both languages, present in both
+-- ispell dictionaries — any word recognized by both would do.
 DO $$
 BEGIN
   IF ts_lexize('tmp_check_czech', 'domy') IS NULL THEN
